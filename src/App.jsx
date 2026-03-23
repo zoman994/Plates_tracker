@@ -75,8 +75,9 @@ export default function CloneTracker() {
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo]);
 
+  // Save on close (no blocking dialog — autosave handles it)
   useEffect(() => {
-    const handler = (e) => { if (useStore.getState().experiments.length > 0) { e.preventDefault(); e.returnValue = ""; } };
+    const handler = () => autoSaveToDisk(useStore);
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
