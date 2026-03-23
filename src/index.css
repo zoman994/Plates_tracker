@@ -4,17 +4,9 @@
 
 body { margin: 0; }
 
-/* Theme tokens via Tailwind dark: class on <html> */
-.dark {
-  color-scheme: dark;
-}
+.dark { color-scheme: dark; }
 
-/* Smooth theme transition */
-*, *::before, *::after {
+/* Theme transition only on containers, not every element */
+div, button, input, select, textarea, span, label, th, td, tr {
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
-}
-
-/* Override for SVG (no transitions on SVG paint) */
-svg, svg * {
-  transition: none !important;
 }

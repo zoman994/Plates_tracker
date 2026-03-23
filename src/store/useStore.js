@@ -6,6 +6,14 @@ import {
 } from "../lib/geometry";
 import { generate48Layout } from "../lib/generate48Layout";
 
+// ── Undo: diff-based snapshots ──
+// Only stores {experiments, plates, transfers} as snapshot.
+// Max 30 entries to limit memory (~few MB even with large datasets).
+const MAX_UNDO = 30;
+
+// Monotonic counter for auto-save detection
+let _saveCounter = 0;
+
 const useStore = create(
   persist(
     (set, get) => ({
@@ -17,17 +25,20 @@ const useStore = create(
       // ── Undo/Redo ──
       _past: [],
       _future: [],
+      _saveCounter: 0,
 
       _pushUndo: () => {
-        const s = get();
-        const snap = JSON.parse(JSON.stringify({
-          experiments: s.experiments,
-          plates: s.plates,
-          transfers: s.transfers,
-        }));
+        const { experiments, plates, transfers } = get();
+        // Snapshot only IDs + shallow refs; deep clone only what's needed
+        const snap = {
+          experiments: experiments.map((e) => ({ ...e })),
+          plates: plates.map((p) => ({ ...p, wells: { ...p.wells } })),
+          transfers: transfers.map((t) => ({ ...t })),
+        };
         set((prev) => ({
-          _past: [...prev._past.slice(-49), snap],
+          _past: [...prev._past.slice(-(MAX_UNDO - 1)), snap],
           _future: [],
+          _saveCounter: ++_saveCounter,
         }));
       },
 
@@ -35,17 +46,18 @@ const useStore = create(
         const s = get();
         if (s._past.length === 0) return;
         const prev = s._past[s._past.length - 1];
-        const current = JSON.parse(JSON.stringify({
-          experiments: s.experiments,
-          plates: s.plates,
-          transfers: s.transfers,
-        }));
+        const current = {
+          experiments: s.experiments.map((e) => ({ ...e })),
+          plates: s.plates.map((p) => ({ ...p, wells: { ...p.wells } })),
+          transfers: s.transfers.map((t) => ({ ...t })),
+        };
         set({
           _past: s._past.slice(0, -1),
           _future: [...s._future, current],
           experiments: prev.experiments,
           plates: prev.plates,
           transfers: prev.transfers,
+          _saveCounter: ++_saveCounter,
         });
       },
 
@@ -53,17 +65,18 @@ const useStore = create(
         const s = get();
         if (s._future.length === 0) return;
         const next = s._future[s._future.length - 1];
-        const current = JSON.parse(JSON.stringify({
-          experiments: s.experiments,
-          plates: s.plates,
-          transfers: s.transfers,
-        }));
+        const current = {
+          experiments: s.experiments.map((e) => ({ ...e })),
+          plates: s.plates.map((p) => ({ ...p, wells: { ...p.wells } })),
+          transfers: s.transfers.map((t) => ({ ...t })),
+        };
         set({
           _future: s._future.slice(0, -1),
           _past: [...s._past, current],
           experiments: next.experiments,
           plates: next.plates,
           transfers: next.transfers,
+          _saveCounter: ++_saveCounter,
         });
       },
 
@@ -75,6 +88,7 @@ const useStore = create(
       hovWell: null,
       hovClone: null,
       transferMode: null,
+      pendingDelete: null, // {type: "exp"|"plate", id: string} — for confirm dialog
 
       // ── UI Actions ──
       setTab: (tab) => set({ tab, transferMode: null }),
@@ -84,6 +98,35 @@ const useStore = create(
       setHovWell: (well) => set({ hovWell: well }),
       setHovClone: (cloneId) => set({ hovClone: cloneId }),
       setTransferMode: (mode) => set({ transferMode: mode }),
+
+      // ── Delete with confirmation (no confirm() in store) ──
+      requestDelete: (type, id) => set({ pendingDelete: { type, id }, modal: "confirmDelete" }),
+      cancelDelete: () => set({ pendingDelete: null, modal: null }),
+      confirmDelete: () => {
+        const { pendingDelete } = get();
+        if (!pendingDelete) return;
+        get()._pushUndo();
+        if (pendingDelete.type === "exp") {
+          const eid = pendingDelete.id;
+          set((s) => ({
+            experiments: s.experiments.filter((e) => e.id !== eid),
+            plates: s.plates.filter((p) => p.expId !== eid),
+            transfers: s.transfers.filter((t) => t.expId !== eid),
+            selExp: s.selExp === eid ? null : s.selExp,
+            pendingDelete: null,
+            modal: null,
+          }));
+        } else if (pendingDelete.type === "plate") {
+          const pid = pendingDelete.id;
+          set((s) => ({
+            plates: s.plates.filter((p) => p.id !== pid),
+            transfers: s.transfers.filter((t) => t.sourceId !== pid && !t.targetIds.includes(pid)),
+            selPlate: s.selPlate === pid ? null : s.selPlate,
+            pendingDelete: null,
+            modal: null,
+          }));
+        }
+      },
 
       // ── Data Actions ──
       createExp: (id, type, name, notes) => {
@@ -96,17 +139,6 @@ const useStore = create(
           selExp: id,
           modal: null,
           tab: "plates",
-        }));
-      },
-
-      deleteExp: (eid) => {
-        if (!confirm(`Удалить ${eid}?`)) return;
-        get()._pushUndo();
-        set((s) => ({
-          experiments: s.experiments.filter((e) => e.id !== eid),
-          plates: s.plates.filter((p) => p.expId !== eid),
-          transfers: s.transfers.filter((t) => t.expId !== eid),
-          selExp: s.selExp === eid ? null : s.selExp,
         }));
       },
 
@@ -126,16 +158,6 @@ const useStore = create(
           ],
           selPlate: id,
           modal: null,
-        }));
-      },
-
-      deletePlate: (plateId) => {
-        if (!confirm("Удалить планшет?")) return;
-        get()._pushUndo();
-        set((s) => ({
-          plates: s.plates.filter((p) => p.id !== plateId),
-          transfers: s.transfers.filter((t) => t.sourceId !== plateId && !t.targetIds.includes(plateId)),
-          selPlate: s.selPlate === plateId ? null : s.selPlate,
         }));
       },
 
@@ -190,10 +212,10 @@ const useStore = create(
           const name = `P${n.toString().padStart(2, "0")}`;
           const id = `${src.expId}-${name}`;
           const nw = {};
-          // If customClones provided, only transfer those
           const activeIds = customClones ? new Set(customClones.map((c) => c.cloneId)) : null;
           for (const [k, v] of Object.entries(src.wells)) {
             if (activeIds && v.status === "picked" && !activeIds.has(v.cloneId)) {
+              // Excluded picked clone → empty, but keep WT/blank/dead as-is
               nw[k] = { status: "empty", cloneId: null };
             } else {
               nw[k] = { ...v };
@@ -211,8 +233,7 @@ const useStore = create(
             transferMode: null,
           });
         } else if (type === "96to48") {
-          const cpPlate = clonesPerPlate(replicates);
-          // Use custom clone list if provided, otherwise extract from source
+          const cpPlate = clonesPerPlate(replicates, layout);
           let clones;
           if (customClones) {
             clones = customClones;
@@ -255,6 +276,7 @@ const useStore = create(
                 targetIds: newPlates.map((p) => p.id),
                 type,
                 replicates,
+                layout,
                 date: new Date().toISOString(),
               },
             ],

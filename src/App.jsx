@@ -45,7 +45,6 @@ export default function CloneTracker() {
   const plates = useStore((s) => s.plates);
 
   const createExp = useStore((s) => s.createExp);
-  const deleteExp = useStore((s) => s.deleteExp);
   const createPlate = useStore((s) => s.createPlate);
   const batchWellAction = useStore((s) => s.batchWellAction);
   const startTransfer = useStore((s) => s.startTransfer);
@@ -53,7 +52,10 @@ export default function CloneTracker() {
   const importAssay = useStore((s) => s.importAssay);
   const applyPhotoAnalysis = useStore((s) => s.applyPhotoAnalysis);
   const replaceWells = useStore((s) => s.replaceWells);
-  const deletePlate = useStore((s) => s.deletePlate);
+  const requestDelete = useStore((s) => s.requestDelete);
+  const confirmDeleteAction = useStore((s) => s.confirmDelete);
+  const cancelDelete = useStore((s) => s.cancelDelete);
+  const pendingDelete = useStore((s) => s.pendingDelete);
   const duplicatePlate = useStore((s) => s.duplicatePlate);
 
   const undo = useStore((s) => s.undo);
@@ -99,12 +101,13 @@ export default function CloneTracker() {
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
-  // Auto-save to disk (Electron)
-  const dataVersion = useStore((s) => s.experiments.length + s.plates.length + s.transfers.length);
+  // Auto-save to disk (Electron) — triggers on any data mutation
+  const saveCounter = useStore((s) => s._saveCounter);
   useEffect(() => {
-    const timer = setTimeout(() => autoSaveToDisk(useStore), 2000);
+    if (saveCounter === 0) return; // skip initial
+    const timer = setTimeout(() => autoSaveToDisk(useStore), 1500);
     return () => clearTimeout(timer);
-  }, [dataVersion]);
+  }, [saveCounter]);
 
   const curExp = experiments.find((e) => e.id === selExp);
   const expPlates = plates.filter((p) => p.expId === selExp);
@@ -122,7 +125,7 @@ export default function CloneTracker() {
       <div className={`border-b px-4 py-2 flex justify-between items-center sticky top-0 z-40 ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"}`}>
         <div className="flex items-center gap-2">
           <span className="text-emerald-500 font-bold text-[15px] -tracking-wide">◉ CloneTracker</span>
-          <span className={`text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>v0.52</span>
+          <span className={`text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>v1.0</span>
           <div className="flex items-center gap-0.5 ml-2">
             <button onClick={undo} disabled={pastLen === 0}
               className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 ${isDark ? "border-zinc-800 text-zinc-500 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
@@ -191,7 +194,7 @@ export default function CloneTracker() {
                       <div className="flex items-center gap-3 text-[10px] text-zinc-500">
                         <span>{nC} кл.</span>
                         <span>{nP} пл.</span>
-                        <Btn variant="danger" small onClick={(e) => { e.stopPropagation(); deleteExp(exp.id); }}>✕</Btn>
+                        <Btn variant="danger" small onClick={(e) => { e.stopPropagation(); requestDelete("exp", exp.id); }}>✕</Btn>
                       </div>
                     </div>
                   </div>
@@ -303,7 +306,7 @@ export default function CloneTracker() {
                       <Btn small variant="secondary" onClick={() => setModal("label")}>🏷 Этикетка</Btn>
                       <div className="flex-1" />
                       <Btn small variant="secondary" onClick={() => duplicatePlate(curPlate.id)}>📋 Копия</Btn>
-                      <Btn small variant="danger" onClick={() => deletePlate(curPlate.id)}>🗑</Btn>
+                      <Btn small variant="danger" onClick={() => requestDelete("plate", curPlate.id)}>🗑</Btn>
                     </div>
 
                     <div className="h-3.5 mb-1 text-[11px] text-zinc-500">
@@ -446,6 +449,19 @@ export default function CloneTracker() {
       </Modal>
       <Modal open={modal === "tecanConfig"} onClose={() => setModal(null)} title="Настройки Tecan EVO150">
         <TecanConfigForm onClose={() => setModal(null)} />
+      </Modal>
+      <Modal open={modal === "confirmDelete"} onClose={cancelDelete} title="Подтверждение удаления">
+        <div className="flex flex-col gap-3">
+          <div className={`text-[11px] ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            {pendingDelete?.type === "exp"
+              ? `Удалить эксперимент ${pendingDelete?.id}? Все планшеты и трансферы будут удалены.`
+              : `Удалить планшет ${pendingDelete?.id}?`}
+          </div>
+          <div className="flex justify-end gap-1.5">
+            <Btn variant="secondary" onClick={cancelDelete}>Отмена</Btn>
+            <Btn variant="danger" onClick={confirmDeleteAction}>Удалить</Btn>
+          </div>
+        </div>
       </Modal>
     </div>
   );
