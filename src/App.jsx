@@ -22,7 +22,9 @@ import AssayForm from "./forms/AssayForm";
 import PickingImportForm from "./forms/PickingImportForm";
 import { exportPlate, exportExperiment } from "./lib/exportXlsx";
 import { exportBackup, importBackup, autoSaveToDisk } from "./lib/backup";
-import { generatePassageGwl, buildTransferMapping, generateTransfer96to48Gwl, downloadGwl } from "./lib/tecanGwl";
+import { generatePassageGwl, generateTransfer96to48Gwl, downloadGwl } from "./lib/tecanGwl";
+import CloneCounterImportForm from "./forms/CloneCounterImportForm";
+import TecanConfigForm from "./forms/TecanConfigForm";
 
 export default function CloneTracker() {
   const tab = useStore((s) => s.tab);
@@ -222,14 +224,14 @@ export default function CloneTracker() {
                       const src = expPlates.find((p) => p.type === "source");
                       const culture = expPlates.filter((p) => p.type === "culture");
                       if (src && culture.length > 0) {
-                        const mapping = buildTransferMapping(src, culture);
-                        const gwl = generateTransfer96to48Gwl(src.name, mapping);
-                        downloadGwl(gwl, `${selExp}-worklist.gwl`);
+                        const gwl = generateTransfer96to48Gwl(src.name, culture);
+                        downloadGwl(gwl, `${selExp}-transfer.gwl`);
                       } else if (src) {
                         const gwl = generatePassageGwl(src, "Dest");
                         downloadGwl(gwl, `${selExp}-passage.gwl`);
                       }
                     }} disabled={expPlates.filter((p) => p.type === "source").length === 0}>⬇ .gwl</Btn>
+                    <Btn variant="secondary" onClick={() => setModal("tecanConfig")}>⚙ Tecan</Btn>
                     <Btn onClick={() => setModal("newPlate")}>+ Планшет</Btn>
                   </div>
                 </div>
@@ -286,7 +288,8 @@ export default function CloneTracker() {
                     <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                       {curPlate.format === 96 && !hasData && (
                         <>
-                          <Btn small variant="secondary" onClick={() => setModal("picking")}>📋 Импорт .xlsx</Btn>
+                          <Btn small variant="secondary" onClick={() => setModal("cloneCounter")}>🧫 CloneCounter</Btn>
+                          <Btn small variant="secondary" onClick={() => setModal("picking")}>📋 .xlsx</Btn>
                           <Btn small variant="secondary" onClick={() => setModal("photo")}>📷 Фото</Btn>
                         </>
                       )}
@@ -433,6 +436,16 @@ export default function CloneTracker() {
             onSave={(pid, newWells) => replaceWells(pid, newWells)}
             onClose={() => setModal(null)} />
         )}
+      </Modal>
+      <Modal open={modal === "cloneCounter"} onClose={() => setModal(null)} title="Импорт из CloneCounter">
+        {curPlate && (
+          <CloneCounterImportForm plateId={curPlate.id}
+            onApply={(pid, wells, action) => batchWellAction(pid, wells, action)}
+            onClose={() => setModal(null)} />
+        )}
+      </Modal>
+      <Modal open={modal === "tecanConfig"} onClose={() => setModal(null)} title="Настройки Tecan EVO150">
+        <TecanConfigForm onClose={() => setModal(null)} />
       </Modal>
     </div>
   );
