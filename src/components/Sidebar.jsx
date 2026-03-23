@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useStore from "../store/useStore";
 import { useTheme } from "../lib/ThemeContext";
 import { PLATE_TYPES } from "../lib/geometry";
-import { exportBackup, importBackup } from "../lib/backup";
+import { exportBackup, importBackup, exportExperimentJson, importExperimentJson } from "../lib/backup";
 import { exportExperiment } from "../lib/exportXlsx";
 import { generatePassageGwl, generateTransfer96to48Gwl, downloadGwl } from "../lib/tecanGwl";
 
@@ -155,6 +155,8 @@ export default function Sidebar() {
           <div className="flex flex-col gap-0.5 ml-2">
             {menuItem(() => exportBackup(useStore), "💾 Сохранить бэкап (Ctrl+S)")}
             {menuItem(async () => { const r = await importBackup(useStore); if (r.ok) alert(`Импортировано: ${r.count} экспериментов`); }, "📂 Загрузить бэкап")}
+            {selExp && menuItem(() => exportExperimentJson(useStore, selExp), "📤 Отправить эксперимент")}
+            {menuItem(async () => { const r = await importExperimentJson(useStore); if (r.ok) alert(`${r.action === "merged" ? "Обновлён" : "Добавлен"}: ${r.id}`); else if (r.error) alert(r.error); }, "📥 Принять эксперимент")}
             {menuItem(() => setModal("tecanConfig"), "⚙ Настройки Tecan")}
             {selExp && menuItem(() => exportExperiment(plates, selExp), "📊 Экспорт эксп. Excel")}
             {selExp && menuItem(() => {

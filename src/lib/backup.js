@@ -140,3 +140,96 @@ export async function importBackup(store) {
 
   return { ok: true, count: data.experiments.length };
 }
+
+// ── Share single experiment (mobile-friendly) ──
+
+export function exportExperimentJson(store, expId) {
+  const s = store.getState();
+  const exp = s.experiments.find((e) => e.id === expId);
+  if (!exp) return;
+
+  const expPlates = s.plates.filter((p) => p.expId === expId);
+  const expTransfers = s.transfers.filter((t) => t.expId === expId);
+
+  const data = JSON.stringify({
+    _version: 3,
+    _type: "experiment",
+    _date: new Date().toISOString(),
+    experiment: exp,
+    plates: expPlates,
+    transfers: expTransfers,
+  }, null, 2);
+
+  const blob = new Blob([data], { type: "application/json" });
+  const file = new File([blob], `${expId}.json`, { type: "application/json" });
+
+  // Try Web Share API (mobile native share)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: `CloneTracker: ${expId}` }).catch(() => {});
+    return;
+  }
+
+  // Fallback: download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${expId}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importExperimentJson(store) {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) { resolve({ ok: false }); return; }
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        if (data._type === "experiment" && data.experiment && data.plates) {
+          // Single experiment import
+          const s = store.getState();
+          s._pushUndo();
+
+          // Check for duplicate experiment
+          const existing = s.experiments.find((ex) => ex.id === data.experiment.id);
+          if (existing) {
+            // Merge: replace plates and transfers for this experiment
+            store.setState({
+              plates: [
+                ...s.plates.filter((p) => p.expId !== data.experiment.id),
+                ...data.plates,
+              ],
+              transfers: [
+                ...s.transfers.filter((t) => t.expId !== data.experiment.id),
+                ...data.transfers,
+              ],
+            });
+            resolve({ ok: true, action: "merged", id: data.experiment.id });
+          } else {
+            // Add new experiment
+            store.setState({
+              experiments: [...s.experiments, data.experiment],
+              plates: [...s.plates, ...data.plates],
+              transfers: [...s.transfers, ...data.transfers],
+            });
+            resolve({ ok: true, action: "added", id: data.experiment.id });
+          }
+        } else if (data.experiments && data.plates && data.transfers) {
+          // Full backup — delegate to importBackup
+          const r = await importBackup(store);
+          resolve(r);
+        } else {
+          resolve({ ok: false, error: "Неизвестный формат файла" });
+        }
+      } catch (err) {
+        resolve({ ok: false, error: "Ошибка: " + err.message });
+      }
+    };
+    input.click();
+  });
+}
