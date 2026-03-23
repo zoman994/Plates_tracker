@@ -2,7 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  background: #09090b;
+body { margin: 0; }
+
+/* Theme tokens via Tailwind dark: class on <html> */
+.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* Override for SVG (no transitions on SVG paint) */
+svg, svg * {
+  transition: none !important;
 }
