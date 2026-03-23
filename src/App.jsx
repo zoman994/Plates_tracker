@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import useStore from "./store/useStore";
+import { useTheme } from "./lib/ThemeContext";
 import { WELL_STATUS, PLATE_TYPES } from "./lib/geometry";
 
 import PlateMap from "./components/PlateMap";
@@ -57,6 +58,8 @@ export default function CloneTracker() {
   const pastLen = useStore((s) => s._past.length);
   const futureLen = useStore((s) => s._future.length);
 
+  const { isDark, toggleTheme } = useTheme();
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
@@ -95,27 +98,30 @@ export default function CloneTracker() {
   const curRep = curPlate?.replicates || 3;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-300 font-mono text-xs">
+    <div className={`min-h-screen font-mono text-xs ${isDark ? "bg-zinc-950 text-zinc-300" : "bg-white text-zinc-800"}`}>
       {/* HEADER */}
-      <div className="border-b border-zinc-800 px-4 py-2 flex justify-between items-center sticky top-0 bg-zinc-950 z-40">
+      <div className={`border-b px-4 py-2 flex justify-between items-center sticky top-0 z-40 ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"}`}>
         <div className="flex items-center gap-2">
           <span className="text-emerald-500 font-bold text-[15px] -tracking-wide">◉ CloneTracker</span>
-          <span className="text-zinc-700 text-[10px]">v0.5</span>
+          <span className={`text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>v0.51</span>
           <div className="flex items-center gap-0.5 ml-2">
             <button onClick={undo} disabled={pastLen === 0}
-              className="bg-transparent border border-zinc-800 rounded text-zinc-500 cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 hover:bg-zinc-800"
+              className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 ${isDark ? "border-zinc-800 text-zinc-500 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
               title="Отменить (Ctrl+Z)">↩</button>
             <button onClick={redo} disabled={futureLen === 0}
-              className="bg-transparent border border-zinc-800 rounded text-zinc-500 cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 hover:bg-zinc-800"
+              className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 ${isDark ? "border-zinc-800 text-zinc-500 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
               title="Повторить (Ctrl+Shift+Z)">↪</button>
           </div>
           <div className="flex items-center gap-0.5 ml-2">
             <button onClick={() => exportBackup(useStore)}
-              className="bg-transparent border border-zinc-800 rounded text-zinc-600 cursor-pointer px-1.5 py-0.5 text-[9px] font-mono hover:bg-zinc-800 hover:text-zinc-400"
+              className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[9px] font-mono ${isDark ? "border-zinc-800 text-zinc-600 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
               title="Экспорт бэкапа">💾</button>
             <button onClick={async () => { const r = await importBackup(useStore); if (r.ok) alert(`Импортировано: ${r.count} экспериментов`); }}
-              className="bg-transparent border border-zinc-800 rounded text-zinc-600 cursor-pointer px-1.5 py-0.5 text-[9px] font-mono hover:bg-zinc-800 hover:text-zinc-400"
+              className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[9px] font-mono ${isDark ? "border-zinc-800 text-zinc-600 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
               title="Импорт бэкапа">📂</button>
+            <button onClick={toggleTheme}
+              className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[9px] font-mono ${isDark ? "border-zinc-800 text-zinc-600 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
+              title="Переключить тему">{isDark ? "☀️" : "🌙"}</button>
           </div>
         </div>
         <div className="flex gap-0.5">
@@ -154,13 +160,13 @@ export default function CloneTracker() {
                     className={`border rounded-lg p-3 cursor-pointer mb-2 ${
                       selExp === exp.id
                         ? "border-emerald-600 bg-emerald-500/[0.03]"
-                        : "border-zinc-800"
+                        : isDark ? "border-zinc-800" : "border-zinc-200"
                     }`}
                     onClick={() => { setSelExp(exp.id); setTab("plates"); }}>
                     <div className="flex justify-between">
                       <div>
-                        <span className="font-bold text-zinc-200">{exp.id}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 ml-2">{exp.type}</span>
+                        <span className={`font-bold ${isDark ? "text-zinc-200" : "text-zinc-900"}`}>{exp.id}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ml-2 ${isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`}>{exp.type}</span>
                         <div className="text-[10px] text-zinc-500 mt-1">{exp.name} · {exp.date}</div>
                       </div>
                       <div className="flex items-center gap-3 text-[10px] text-zinc-500">
@@ -223,7 +229,7 @@ export default function CloneTracker() {
                               className={`px-2.5 py-1 text-[10px] rounded border cursor-pointer font-mono ${
                                 selPlate === p.id
                                   ? "border-emerald-600 bg-emerald-500/10 text-emerald-500"
-                                  : "border-zinc-700 text-zinc-400"
+                                  : isDark ? "border-zinc-700 text-zinc-400" : "border-zinc-300 text-zinc-500"
                               }`}
                               onClick={() => setSelPlate(p.id)}>
                               {PLATE_TYPES[type]?.icon} {p.name}
@@ -237,7 +243,7 @@ export default function CloneTracker() {
                 )}
 
                 {curPlate && curPlate.expId === selExp ? (
-                  <div className="border border-zinc-800 rounded-lg p-4">
+                  <div className={`border rounded-lg p-4 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}>
                     <div className="flex justify-between items-center mb-2">
                       <div>
                         <span className="font-bold text-zinc-200">{curPlate.name}</span>
