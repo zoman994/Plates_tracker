@@ -26,7 +26,11 @@ export default function LabelPrint({ plate, expId, onClose }) {
   const deadCount = Object.values(plate.wells).filter((w) => w.status === "dead").length;
   const date = plate.created ? plate.created.split("T")[0] : "";
 
-  useEffect(() => { renderLabel(); }, [plate]);
+  useEffect(() => {
+    let mounted = true;
+    renderLabel().then(() => { if (!mounted) return; });
+    return () => { mounted = false; };
+  }, [plate]);
 
   async function renderLabel() {
     const canvas = canvasRef.current;

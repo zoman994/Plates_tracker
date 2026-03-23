@@ -10,10 +10,10 @@ export default function StatsTab({ expId }) {
   const experiments = useStore((s) => s.experiments);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const expPlates = plates.filter((p) => p.expId === expId);
-  const sourcePlates = expPlates.filter((p) => p.type === "source");
-  const passagePlates = expPlates.filter((p) => p.type === "passage");
-  const culturePlates = expPlates.filter((p) => p.type === "culture");
+  const expPlates = useMemo(() => plates.filter((p) => p.expId === expId), [plates, expId]);
+  const sourcePlates = useMemo(() => expPlates.filter((p) => p.type === "source"), [expPlates]);
+  const passagePlates = useMemo(() => expPlates.filter((p) => p.type === "passage"), [expPlates]);
+  const culturePlates = useMemo(() => expPlates.filter((p) => p.type === "culture"), [expPlates]);
 
   // Clone stats
   const allClones = useMemo(() => {
@@ -247,7 +247,10 @@ export default function StatsTab({ expId }) {
                       <td className={`py-1 px-2 ${isDark ? "text-zinc-200" : "text-zinc-900"} text-[9px]`}>{cl.cloneId}</td>
                       {multiExp && <td className="py-1 px-2 text-zinc-500">{cl.exp}</td>}
                       <td className="py-1 px-2 text-zinc-500">{cl.sourceWell}</td>
-                      <td className="py-1 px-2 text-right text-emerald-500">{cl.mean.toFixed(3)}±{cl.std.toFixed(3)}</td>
+                      <td className="py-1 px-2 text-right text-emerald-500">
+                        {cl.mean.toFixed(3)}±{cl.std.toFixed(3)}
+                        {cl.cvWarning && <span className="text-amber-500 ml-1" title={`CV=${cl.cv.toFixed(0)}%`}>⚠</span>}
+                      </td>
                       <td className="py-1 px-2 text-right text-amber-600">{cl.ratio.toFixed(2)}×</td>
                       <td className="py-1 px-2">
                         <div className={`w-full h-1.5 ${isDark ? "bg-zinc-800" : "bg-zinc-200"} rounded-sm`}>

@@ -130,29 +130,29 @@ export default function TransferView({ sourcePlate, type, replicates = 3, layout
     setDragClone(null);
   }
 
-  // Build previews
-  let previews = [];
-  if (type === "passage96") {
-    const passageWells = {};
-    for (const [k, v] of Object.entries(sourcePlate.wells)) {
-      if (v.status === "picked" && excluded.has(v.cloneId)) {
-        passageWells[k] = { status: "empty", cloneId: null };
-      } else {
-        passageWells[k] = { ...v };
+  // Build previews (memoized)
+  const previews = useMemo(() => {
+    if (type === "passage96") {
+      const passageWells = {};
+      for (const [k, v] of Object.entries(sourcePlate.wells)) {
+        if (v.status === "picked" && excluded.has(v.cloneId)) {
+          passageWells[k] = { status: "empty", cloneId: null };
+        } else {
+          passageWells[k] = { ...v };
+        }
       }
+      return [{ format: 96, wells: passageWells, label: `Passage (${activeClones.length} кл.)` }];
     }
-    previews = [{ format: 96, wells: passageWells, label: `Passage (${activeClones.length} кл.)` }];
-  } else {
     const chunks = [];
     for (let i = 0; i < activeClones.length; i += cpPlate)
       chunks.push(activeClones.slice(i, i + cpPlate));
-    previews = chunks.map((chunk, i) => ({
+    return chunks.map((chunk, i) => ({
       format: 48,
       wells: generate48Layout(chunk, replicates, layout),
       label: `48-DWP #${i + 1} (${chunk.length} кл. + WT, ${replicates}×)`,
       cloneIds: new Set(chunk.map((c) => c.cloneId)),
     }));
-  }
+  }, [type, activeClones, excluded, sourcePlate, cpPlate, replicates, layout]);
 
   const cur = previews[previewIdx] || previews[0];
   const previewIds = cur?.cloneIds ||

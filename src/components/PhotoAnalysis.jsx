@@ -61,7 +61,9 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
         const px = (1 - v) * ((1 - u) * tl.x + u * tr.x) + v * ((1 - u) * bl.x + u * br.x);
         const py = (1 - v) * ((1 - u) * tl.y + u * tr.y) + v * ((1 - u) * bl.y + u * br.y);
 
-        const sampleR = 4;
+        // Adaptive sample radius based on plate size in pixels
+        const plateW = Math.abs(tr.x - tl.x);
+        const sampleR = Math.max(2, Math.min(12, Math.round(plateW / 12 / 6)));
         let totalBright = 0, count = 0;
         for (let dy = -sampleR; dy <= sampleR; dy++) {
           for (let dx = -sampleR; dx <= sampleR; dx++) {
@@ -84,9 +86,14 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
     setStep("review");
   }
 
+  // Debounced re-analyze on threshold change
+  const reAnalyzeTimer = useRef(null);
   function reAnalyze(newThresh) {
     setThreshold(newThresh);
-    if (corners.length === 4) analyzeImage(corners, newThresh);
+    if (reAnalyzeTimer.current) clearTimeout(reAnalyzeTimer.current);
+    reAnalyzeTimer.current = setTimeout(() => {
+      if (corners.length === 4) analyzeImage(corners, newThresh);
+    }, 100);
   }
 
   function toggleWell(well) {
@@ -165,7 +172,8 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
             Загрузить фото
             <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
           </label>
-          <div className={`text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-500"} mt-2`}>Фото 96-well планшета сверху</div>
+          <div className={`text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-500"} mt-2`}>Фото 96-well планшета строго сверху (без наклона)</div>
+          <div className={`text-[9px] ${isDark ? "text-zinc-700" : "text-zinc-400"} mt-1`}>⚠ При съёмке под углом точность определения крайних лунок снижается</div>
         </div>
       )}
 

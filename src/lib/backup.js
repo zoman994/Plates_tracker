@@ -5,12 +5,16 @@
 
 function getDataSnapshot(store) {
   const s = store.getState();
+  // Include Tecan config in backup
+  let tecanConfig = null;
+  try { tecanConfig = JSON.parse(localStorage.getItem("ct-tecan-config")); } catch {}
   return JSON.stringify({
-    _version: 2,
+    _version: 3,
     _date: new Date().toISOString(),
     experiments: s.experiments,
     plates: s.plates,
     transfers: s.transfers,
+    tecanConfig,
   }, null, 2);
 }
 
@@ -22,15 +26,39 @@ export function autoSaveToDisk(store) {
 }
 
 // ── Load from disk on startup (Electron only) ──
-export async function loadFromDisk() {
-  if (!window.electronAPI) return null;
-  const result = await window.electronAPI.loadData();
-  if (result.ok && result.data) {
-    try {
-      return JSON.parse(result.data);
-    } catch { return null; }
+// Compares file backup with localStorage, uses newer version
+export async function loadFromDiskIfNewer(store) {
+  if (!window.electronAPI) return;
+  try {
+    const result = await window.electronAPI.loadData();
+    if (!result.ok || !result.data) return;
+    const fileData = JSON.parse(result.data);
+    if (!Array.isArray(fileData.experiments) || !Array.isArray(fileData.plates)) return;
+
+    const storeData = store.getState();
+    const fileTotal = fileData.experiments.length + fileData.plates.length + fileData.transfers.length;
+    const storeTotal = storeData.experiments.length + storeData.plates.length + storeData.transfers.length;
+
+    // If localStorage is empty but file has data — restore from file
+    if (storeTotal === 0 && fileTotal > 0) {
+      store.setState({
+        experiments: fileData.experiments,
+        plates: fileData.plates,
+        transfers: fileData.transfers,
+      });
+      console.log("Restored from disk backup:", fileTotal, "items");
+    }
+    // If file has more data (localStorage was cleared) — offer restore
+    else if (fileTotal > storeTotal && storeTotal === 0) {
+      store.setState({
+        experiments: fileData.experiments,
+        plates: fileData.plates,
+        transfers: fileData.transfers,
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to load disk backup:", e);
   }
-  return null;
 }
 
 // ── Export backup ──
@@ -84,9 +112,16 @@ export async function importBackup(store) {
     if (!data) return { ok: false, error: "cancelled" };
   }
 
-  // Validate
-  if (!data.experiments || !data.plates || !data.transfers) {
-    return { ok: false, error: "Файл не содержит данных CloneTracker" };
+  // Validate structure
+  if (!Array.isArray(data.experiments) || !Array.isArray(data.plates) || !Array.isArray(data.transfers)) {
+    return { ok: false, error: "Файл не содержит данных CloneTracker (experiments/plates/transfers должны быть массивами)" };
+  }
+  // Validate basic shape
+  for (const exp of data.experiments) {
+    if (!exp.id || typeof exp.id !== "string") return { ok: false, error: `Невалидный эксперимент: отсутствует id` };
+  }
+  for (const plate of data.plates) {
+    if (!plate.id || !plate.wells || typeof plate.wells !== "object") return { ok: false, error: `Невалидный планшет: ${plate.id || "unknown"}` };
   }
 
   // Apply
@@ -97,6 +132,11 @@ export async function importBackup(store) {
     plates: data.plates,
     transfers: data.transfers,
   });
+
+  // Restore Tecan config if present
+  if (data.tecanConfig && typeof data.tecanConfig === "object") {
+    localStorage.setItem("ct-tecan-config", JSON.stringify(data.tecanConfig));
+  }
 
   return { ok: true, count: data.experiments.length };
 }

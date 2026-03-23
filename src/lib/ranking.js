@@ -26,10 +26,13 @@ export function computeRanking(plates, expId) {
       const std = d.values.length > 1
         ? Math.sqrt(d.values.reduce((a, v) => a + (v - mean) ** 2, 0) / (d.values.length - 1))
         : 0;
+      const cv = mean > 0 ? (std / mean) * 100 : 0;
       return {
         cloneId: id,
         mean,
         std,
+        cv,
+        cvWarning: cv > 30, // CV > 30% is suspicious for triplicate assay
         n: d.values.length,
         ratio: mean / wtMean,
         sourceWell: d.sourceWell,

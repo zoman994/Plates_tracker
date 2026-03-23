@@ -85,7 +85,7 @@ export default function PipelineView({ expId }) {
       </span>
       <svg width={svgW} height={svgH} style={{ fontFamily: "'JetBrains Mono',monospace" }}>
         <defs>
-          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <marker id={`arrow-${expId}`} markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill={arrowFill} />
           </marker>
         </defs>
@@ -93,7 +93,7 @@ export default function PipelineView({ expId }) {
           <path key={i}
             d={`M${e.x1},${e.y1} C${e.x1 + 40},${e.y1} ${e.x2 - 40},${e.y2} ${e.x2},${e.y2}`}
             fill="none" stroke={edgeStroke} strokeWidth={1.5}
-            markerEnd="url(#arrowhead)" />
+            markerEnd={`url(#arrow-${expId})`} />
         ))}
         {plates.map((plate) => {
           const pos = nodePositions.get(plate.id);

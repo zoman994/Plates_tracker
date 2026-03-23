@@ -6,13 +6,12 @@ import {
 } from "../lib/geometry";
 import { generate48Layout } from "../lib/generate48Layout";
 
-// ── Undo: diff-based snapshots ──
-// Only stores {experiments, plates, transfers} as snapshot.
-// Max 30 entries to limit memory (~few MB even with large datasets).
 const MAX_UNDO = 30;
 
-// Monotonic counter for auto-save detection
-let _saveCounter = 0;
+// Deep clone for undo snapshots — structuredClone where available, JSON fallback
+const deepClone = typeof structuredClone === "function"
+  ? structuredClone
+  : (obj) => JSON.parse(JSON.stringify(obj));
 
 const useStore = create(
   persist(
@@ -29,16 +28,11 @@ const useStore = create(
 
       _pushUndo: () => {
         const { experiments, plates, transfers } = get();
-        // Snapshot only IDs + shallow refs; deep clone only what's needed
-        const snap = {
-          experiments: experiments.map((e) => ({ ...e })),
-          plates: plates.map((p) => ({ ...p, wells: { ...p.wells } })),
-          transfers: transfers.map((t) => ({ ...t })),
-        };
+        const snap = deepClone({ experiments, plates, transfers });
         set((prev) => ({
           _past: [...prev._past.slice(-(MAX_UNDO - 1)), snap],
           _future: [],
-          _saveCounter: ++_saveCounter,
+          _saveCounter: Date.now(),
         }));
       },
 
@@ -46,18 +40,12 @@ const useStore = create(
         const s = get();
         if (s._past.length === 0) return;
         const prev = s._past[s._past.length - 1];
-        const current = {
-          experiments: s.experiments.map((e) => ({ ...e })),
-          plates: s.plates.map((p) => ({ ...p, wells: { ...p.wells } })),
-          transfers: s.transfers.map((t) => ({ ...t })),
-        };
+        const current = deepClone({ experiments: s.experiments, plates: s.plates, transfers: s.transfers });
         set({
           _past: s._past.slice(0, -1),
           _future: [...s._future, current],
-          experiments: prev.experiments,
-          plates: prev.plates,
-          transfers: prev.transfers,
-          _saveCounter: ++_saveCounter,
+          ...prev,
+          _saveCounter: Date.now(),
         });
       },
 
@@ -65,18 +53,12 @@ const useStore = create(
         const s = get();
         if (s._future.length === 0) return;
         const next = s._future[s._future.length - 1];
-        const current = {
-          experiments: s.experiments.map((e) => ({ ...e })),
-          plates: s.plates.map((p) => ({ ...p, wells: { ...p.wells } })),
-          transfers: s.transfers.map((t) => ({ ...t })),
-        };
+        const current = deepClone({ experiments: s.experiments, plates: s.plates, transfers: s.transfers });
         set({
           _future: s._future.slice(0, -1),
           _past: [...s._past, current],
-          experiments: next.experiments,
-          plates: next.plates,
-          transfers: next.transfers,
-          _saveCounter: ++_saveCounter,
+          ...next,
+          _saveCounter: Date.now(),
         });
       },
 
@@ -166,9 +148,15 @@ const useStore = create(
         const s = get();
         const src = s.plates.find((p) => p.id === plateId);
         if (!src) return;
-        const copyName = src.name + "-copy";
+        // Generate unique name: S01-copy, S01-copy-2, S01-copy-3...
+        const existingNames = new Set(s.plates.map((p) => p.name));
+        let copyName = src.name + "-copy";
+        let n = 2;
+        while (existingNames.has(copyName)) {
+          copyName = `${src.name}-copy-${n++}`;
+        }
         const copyId = `${src.expId}-${copyName}`;
-        const newWells = JSON.parse(JSON.stringify(src.wells));
+        const newWells = deepClone(src.wells);
         set((prev) => ({
           plates: [...prev.plates, { ...src, id: copyId, name: copyName, wells: newWells, created: new Date().toISOString() }],
           selPlate: copyId,

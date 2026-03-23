@@ -16,6 +16,11 @@
 
 import { ROWS_96 } from "./geometry";
 
+// Sort well entries by column-major position for deterministic worklist order
+function sortedWellEntries(wells) {
+  return Object.entries(wells).sort(([a], [b]) => wellToPos(a) - wellToPos(b));
+}
+
 // ── Default deck config (user can override) ──
 const DEFAULT_CONFIG = {
   source96Rack: "Source96",
@@ -29,10 +34,10 @@ const DEFAULT_CONFIG = {
   tipChangeMode: "always", // "always" | "between_clones" | "never"
 };
 
-function wellToPos(well) {
+function wellToPos(well, numRows = 8) {
   const row = well.charCodeAt(0) - 65;
   const col = parseInt(well.slice(1)) - 1;
-  return col * 8 + row + 1;
+  return col * numRows + row + 1;
 }
 
 function header(comment, config) {
@@ -94,7 +99,7 @@ export function generatePassageGwl(sourcePlate, destPlateName, config = null) {
   const cfg = config || getTecanConfig();
   const lines = header(`Passage: ${sourcePlate.name} → ${destPlateName}`, cfg);
 
-  for (const [well, data] of Object.entries(sourcePlate.wells)) {
+  for (const [well, data] of sortedWellEntries(sourcePlate.wells)) {
     if (data.status === "picked" || data.status === "control-wt") {
       const pos = wellToPos(well);
       lines.push(`A;${cfg.source96Rack};${pos};${cfg.aspirateVol};;;`);
@@ -119,7 +124,7 @@ export function generateTransfer96to48Gwl(sourcePlateName, culturePlates, config
     if (pi > 0) lines.push("B;"); // Break between plates (operator swaps plate)
 
     const seen = new Set();
-    for (const [well, data] of Object.entries(cp.wells)) {
+    for (const [well, data] of sortedWellEntries(cp.wells)) {
       if (data.status === "picked" && data.cloneId && data.cloneId !== "WT" && !seen.has(data.cloneId)) {
         seen.add(data.cloneId);
         // Find all replicate wells for this clone

@@ -91,11 +91,3 @@ export function generate48Layout(clones, replicates = 3, layout = "rows") {
 
   return wells;
 }
-
-/**
- * Calculate clones per plate for "cols" layout
- */
-export function clonesPerPlateCols(replicates = 3) {
-  const groupsPerCol = Math.floor(8 / replicates);
-  return groupsPerCol * 6 - 1;
-}
