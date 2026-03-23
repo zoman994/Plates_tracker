@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import useStore from "../store/useStore";
 import { computeRanking } from "../lib/ranking";
+import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
 
 export default function StatsTab({ expId }) {
+  const { isDark } = useTheme();
   const plates = useStore((s) => s.plates);
   const experiments = useStore((s) => s.experiments);
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,14 +117,14 @@ export default function StatsTab({ expId }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="🔍 Поиск клона..."
-            className="bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1 text-[10px] text-zinc-200 font-mono outline-none w-44"
+            className={`${isDark ? "bg-zinc-800 border-zinc-700 text-zinc-200" : "bg-white border-zinc-300 text-zinc-900"} border rounded px-2.5 py-1 text-[10px] font-mono outline-none w-44`}
           />
         </div>
       </div>
 
       {/* Search results */}
       {searchResults && (
-        <div className="border border-zinc-800 rounded-lg p-3 mb-4">
+        <div className={`border ${isDark ? "border-zinc-800" : "border-zinc-200"} rounded-lg p-3 mb-4`}>
           <div className="text-[10px] text-zinc-500 mb-2">
             Найдено: {searchResults.length} {searchResults.length >= 20 ? "(показано 20)" : ""}
           </div>
@@ -142,8 +144,8 @@ export default function StatsTab({ expId }) {
                 </thead>
                 <tbody>
                   {searchResults.map((cl) => (
-                    <tr key={cl.id} className="border-t border-zinc-800">
-                      <td className="py-1 px-2 text-zinc-200 font-bold">{cl.id}</td>
+                    <tr key={cl.id} className={`border-t ${isDark ? "border-zinc-800" : "border-zinc-200"}`}>
+                      <td className={`py-1 px-2 ${isDark ? "text-zinc-200" : "text-zinc-900"} font-bold`}>{cl.id}</td>
                       <td className="py-1 px-2 text-zinc-400">{cl.sourceWell}</td>
                       <td className="py-1 px-2 text-zinc-500">{cl.plates.join(", ")}</td>
                       <td className="py-1 px-2 text-right text-emerald-500">
@@ -166,17 +168,17 @@ export default function StatsTab({ expId }) {
       {/* Stats grid */}
       <div className="grid grid-cols-4 gap-2 mb-4">
         {[
-          ["Планшетов", expPlates.length, "text-zinc-200"],
+          ["Планшетов", expPlates.length, isDark ? "text-zinc-200" : "text-zinc-900"],
           ["Клонов", `${aliveClones}/${totalClones}`, "text-emerald-500"],
           ["Выживаемость", `${survivalRate}%`, "text-emerald-500"],
           ["Скринировано", `${assayedClones}/${totalClones}`, "text-amber-500"],
-          ["Source", sourcePlates.length, "text-zinc-300"],
-          ["Passage", passagePlates.length, "text-zinc-300"],
-          ["Culture", culturePlates.length, "text-zinc-300"],
+          ["Source", sourcePlates.length, isDark ? "text-zinc-300" : "text-zinc-700"],
+          ["Passage", passagePlates.length, isDark ? "text-zinc-300" : "text-zinc-700"],
+          ["Culture", culturePlates.length, isDark ? "text-zinc-300" : "text-zinc-700"],
           ["Dead", deadClones, "text-red-500"],
         ].map(([label, value, color], i) => (
-          <div key={i} className="bg-zinc-900 border border-zinc-800 rounded p-2">
-            <div className="text-[9px] text-zinc-600 uppercase">{label}</div>
+          <div key={i} className={`${isDark ? "bg-zinc-900 border-zinc-800" : "bg-zinc-50 border-zinc-200"} border rounded p-2`}>
+            <div className={`text-[9px] ${isDark ? "text-zinc-600" : "text-zinc-500"} uppercase`}>{label}</div>
             <div className={`text-lg font-bold ${color}`}>{value}</div>
           </div>
         ))}
@@ -184,7 +186,7 @@ export default function StatsTab({ expId }) {
 
       {/* OD Distribution histogram */}
       {histogram.length > 0 && (
-        <div className="border border-zinc-800 rounded-lg p-3 mb-4">
+        <div className={`border ${isDark ? "border-zinc-800" : "border-zinc-200"} rounded-lg p-3 mb-4`}>
           <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">
             Распределение OD · n={allOdValues.length} · mean={odMean.toFixed(3)} · range={odMin.toFixed(3)}–{odMax.toFixed(3)}
           </div>
@@ -193,7 +195,7 @@ export default function StatsTab({ expId }) {
               <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                 <div className="w-full bg-emerald-600 rounded-t-sm"
                   style={{ height: `${(bin.count / histMax) * 100}%`, minHeight: bin.count > 0 ? 2 : 0 }} />
-                <span className="text-[7px] text-zinc-600">{bin.from}</span>
+                <span className={`text-[7px] ${isDark ? "text-zinc-600" : "text-zinc-500"}`}>{bin.from}</span>
               </div>
             ))}
           </div>
@@ -206,7 +208,7 @@ export default function StatsTab({ expId }) {
       )}
 
       {/* Multi-experiment ranking */}
-      <div className="border border-zinc-800 rounded-lg p-3">
+      <div className={`border ${isDark ? "border-zinc-800" : "border-zinc-200"} rounded-lg p-3`}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
             {multiExp ? "Мульти-эксперимент ранкинг (top 50)" : "Ранкинг этого эксперимента"}
@@ -226,7 +228,7 @@ export default function StatsTab({ expId }) {
           return (
             <div className="overflow-x-auto max-h-64 overflow-y-auto">
               <table className="w-full text-[10px] border-collapse">
-                <thead className="sticky top-0 bg-zinc-900">
+                <thead className={`sticky top-0 ${isDark ? "bg-zinc-900" : "bg-zinc-50"}`}>
                   <tr className="text-zinc-500 text-[9px] uppercase">
                     <th className="text-left py-1 px-2 w-6">#</th>
                     <th className="text-left py-1 px-2">Clone</th>
@@ -240,15 +242,15 @@ export default function StatsTab({ expId }) {
                 <tbody>
                   {data.map((cl, i) => (
                     <tr key={cl.cloneId + (cl.exp || "")}
-                      className={`border-t border-zinc-800 ${i < 3 ? "bg-emerald-500/[0.04]" : ""}`}>
-                      <td className="py-1 px-2 text-zinc-600 font-bold">{i + 1}</td>
-                      <td className="py-1 px-2 text-zinc-200 text-[9px]">{cl.cloneId}</td>
+                      className={`border-t ${isDark ? "border-zinc-800" : "border-zinc-200"} ${i < 3 ? "bg-emerald-500/[0.04]" : ""}`}>
+                      <td className={`py-1 px-2 ${isDark ? "text-zinc-600" : "text-zinc-400"} font-bold`}>{i + 1}</td>
+                      <td className={`py-1 px-2 ${isDark ? "text-zinc-200" : "text-zinc-900"} text-[9px]`}>{cl.cloneId}</td>
                       {multiExp && <td className="py-1 px-2 text-zinc-500">{cl.exp}</td>}
                       <td className="py-1 px-2 text-zinc-500">{cl.sourceWell}</td>
                       <td className="py-1 px-2 text-right text-emerald-500">{cl.mean.toFixed(3)}±{cl.std.toFixed(3)}</td>
                       <td className="py-1 px-2 text-right text-amber-600">{cl.ratio.toFixed(2)}×</td>
                       <td className="py-1 px-2">
-                        <div className="w-full h-1.5 bg-zinc-800 rounded-sm">
+                        <div className={`w-full h-1.5 ${isDark ? "bg-zinc-800" : "bg-zinc-200"} rounded-sm`}>
                           <div className="h-1.5 bg-emerald-600 rounded-sm" style={{ width: `${(cl.mean / maxM) * 100}%` }} />
                         </div>
                       </td>

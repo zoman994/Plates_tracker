@@ -129,6 +129,30 @@ const useStore = create(
         }));
       },
 
+      deletePlate: (plateId) => {
+        if (!confirm("Удалить планшет?")) return;
+        get()._pushUndo();
+        set((s) => ({
+          plates: s.plates.filter((p) => p.id !== plateId),
+          transfers: s.transfers.filter((t) => t.sourceId !== plateId && !t.targetIds.includes(plateId)),
+          selPlate: s.selPlate === plateId ? null : s.selPlate,
+        }));
+      },
+
+      duplicatePlate: (plateId) => {
+        get()._pushUndo();
+        const s = get();
+        const src = s.plates.find((p) => p.id === plateId);
+        if (!src) return;
+        const copyName = src.name + "-copy";
+        const copyId = `${src.expId}-${copyName}`;
+        const newWells = JSON.parse(JSON.stringify(src.wells));
+        set((prev) => ({
+          plates: [...prev.plates, { ...src, id: copyId, name: copyName, wells: newWells, created: new Date().toISOString() }],
+          selPlate: copyId,
+        }));
+      },
+
       batchWellAction: (plateId, wls, action) => {
         get()._pushUndo();
         set((s) => ({
@@ -152,10 +176,10 @@ const useStore = create(
         }));
       },
 
-      startTransfer: (srcId, type, replicates = 3) =>
-        set({ transferMode: { sourceId: srcId, type, replicates }, modal: null }),
+      startTransfer: (srcId, type, replicates = 3, layout = "rows") =>
+        set({ transferMode: { sourceId: srcId, type, replicates, layout }, modal: null }),
 
-      confirmTransfer: (srcId, type, replicates = 3, customClones = null) => {
+      confirmTransfer: (srcId, type, replicates = 3, customClones = null, layout = "rows") => {
         get()._pushUndo();
         const s = get();
         const src = s.plates.find((p) => p.id === srcId);
@@ -215,7 +239,8 @@ const useStore = create(
               format: 48,
               type: "culture",
               replicates,
-              wells: generate48Layout(chunk, replicates),
+              layout,
+              wells: generate48Layout(chunk, replicates, layout),
               created: new Date().toISOString(),
             };
           });

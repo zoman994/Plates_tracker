@@ -1,15 +1,18 @@
 import { useState } from "react";
 import Btn from "../components/Btn";
-import { INPUT_CLASS } from "./styles";
+import { inputClass } from "./styles";
 import { parsePickingXlsx } from "../lib/xlsxParser";
 import { downloadPickingTemplate } from "../lib/templateDownload";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function PickingImportForm({ plateId, onApply, onClose }) {
+  const { isDark } = useTheme();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
   const [wtWells, setWtWells] = useState("");
   const [blankWells, setBlankWells] = useState("");
+  const ic = inputClass(isDark);
 
   async function handleParse() {
     if (!file) return;
@@ -77,9 +80,13 @@ export default function PickingImportForm({ plateId, onApply, onClose }) {
       <div className="flex items-center gap-2">
         <input type="file" accept=".xlsx,.xls,.csv"
           onChange={(e) => { setFile(e.target.files[0]); setPreview(null); setError(null); }}
-          className="flex-1 text-[10px] text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-zinc-700 file:text-[10px] file:font-mono file:bg-zinc-800 file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-700" />
+          className={`flex-1 text-[10px] text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:text-[10px] file:font-mono file:cursor-pointer ${
+            isDark
+              ? "file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 hover:file:bg-zinc-700"
+              : "file:border-zinc-300 file:bg-white file:text-zinc-700 hover:file:bg-zinc-100"
+          }`} />
         <button onClick={downloadPickingTemplate}
-          className="text-[9px] text-zinc-600 hover:text-emerald-500 cursor-pointer bg-transparent border-none font-mono underline whitespace-nowrap">
+          className={`text-[9px] hover:text-emerald-500 cursor-pointer bg-transparent border-none font-mono underline whitespace-nowrap ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
           ⬇ Шаблон
         </button>
       </div>
@@ -94,11 +101,11 @@ export default function PickingImportForm({ plateId, onApply, onClose }) {
 
       {/* Preview */}
       {preview && counts && (
-        <div className="bg-zinc-900 rounded p-2.5 text-[11px] text-zinc-400">
+        <div className={`rounded p-2.5 text-[11px] ${isDark ? "bg-zinc-900 text-zinc-400" : "bg-zinc-50 text-zinc-500"}`}>
           Из файла:
           <span className="ml-2">Клоны: <b className="text-emerald-500">{counts.pick}</b></span>
           {counts.wt > 0 && <span className="ml-2">WT: <b className="text-amber-500">{counts.wt}</b></span>}
-          {counts.blank > 0 && <span className="ml-2">Blank: <b className="text-zinc-300">{counts.blank}</b></span>}
+          {counts.blank > 0 && <span className="ml-2">Blank: <b className={isDark ? "text-zinc-300" : "text-zinc-600"}>{counts.blank}</b></span>}
           {counts.dead > 0 && <span className="ml-2">Dead: <b className="text-red-500">{counts.dead}</b></span>}
         </div>
       )}
@@ -106,9 +113,9 @@ export default function PickingImportForm({ plateId, onApply, onClose }) {
       {/* Manual WT / Blank wells */}
       <div>
         <label className="text-[10px] text-zinc-500">
-          WT контроли <span className="text-zinc-700">(лунки через запятую, напр. H1, H2)</span>
+          WT контроли <span className={isDark ? "text-zinc-700" : "text-zinc-400"}>(лунки через запятую, напр. H1, H2)</span>
         </label>
-        <input className={INPUT_CLASS} value={wtWells}
+        <input className={ic} value={wtWells}
           onChange={(e) => setWtWells(e.target.value)}
           placeholder="H1, H2, H3" />
         {extraWtCount > 0 && (
@@ -118,9 +125,9 @@ export default function PickingImportForm({ plateId, onApply, onClose }) {
 
       <div>
         <label className="text-[10px] text-zinc-500">
-          Blank контроли <span className="text-zinc-700">(лунки через запятую)</span>
+          Blank контроли <span className={isDark ? "text-zinc-700" : "text-zinc-400"}>(лунки через запятую)</span>
         </label>
-        <input className={INPUT_CLASS} value={blankWells}
+        <input className={ic} value={blankWells}
           onChange={(e) => setBlankWells(e.target.value)}
           placeholder="H10, H11, H12" />
         {extraBlankCount > 0 && (

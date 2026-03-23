@@ -1,9 +1,15 @@
 import { ROWS_96, COLS_96 } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function SourceView({ wells, previewIds, hovClone, onHover }) {
+  const { isDark } = useTheme();
   const cellS = 26, gap = 2, labelW = 20, labelH = 16;
   const totalW = labelW + COLS_96.length * (cellS + gap);
   const totalH = labelH + ROWS_96.length * (cellS + gap);
+
+  const emptyFill = isDark ? "#27272a" : "#f4f4f5";
+  const emptyStroke = isDark ? "#3f3f46" : "#d4d4d8";
+  const deadFill = isDark ? "#7f1d1d" : "#fecaca";
 
   return (
     <svg width={totalW} height={totalH}
@@ -24,13 +30,13 @@ export default function SourceView({ wells, previewIds, hovClone, onHover }) {
           const y = labelH + ri * (cellS + gap);
           const isHov = hovClone && w.cloneId === hovClone;
 
-          let fill = "#27272a", stroke = "#3f3f46";
+          let fill = emptyFill, stroke = emptyStroke;
           if (w.status === "picked") {
             if (previewIds.has(w.cloneId)) { fill = "#059669"; stroke = "#10b981"; }
             else { fill = "#1a3a2a"; stroke = "#27472f"; }
           } else if (w.status === "control-wt") { fill = "#d97706"; stroke = "#f59e0b"; }
           else if (w.status === "control-blank") { fill = "#52525b"; stroke = "#71717a"; }
-          else if (w.status === "dead") { fill = "#7f1d1d"; stroke = "#991b1b"; }
+          else if (w.status === "dead") { fill = deadFill; stroke = "#991b1b"; }
 
           return (
             <g key={well}

@@ -1,10 +1,16 @@
 import { ROWS_48, COLS_48 } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function HeatmapPlate({ wells, maxVal }) {
+  const { isDark } = useTheme();
   const cellW = 52, cellH = 28, gap = 2, labelW = 20, labelH = 16;
   const mv = maxVal || 1;
   const totalW = labelW + COLS_48.length * (cellW + gap);
   const totalH = labelH + ROWS_48.length * (cellH + gap);
+
+  const emptyFill = isDark ? "#27272a" : "#f4f4f5";
+  const borderStroke = isDark ? "#3f3f46" : "#d4d4d8";
+  const textFill = isDark ? "#fff" : "#18181b";
 
   return (
     <svg width={totalW} height={totalH} style={{ fontFamily: "'JetBrains Mono',monospace" }}>
@@ -28,13 +34,13 @@ export default function HeatmapPlate({ wells, maxVal }) {
             ? `rgba(16,185,129,${0.08 + int * 0.92})`
             : w.status === "control-wt"
               ? "rgba(245,158,11,0.3)"
-              : "#27272a";
+              : emptyFill;
           return (
             <g key={well}>
               <rect x={x} y={y} width={cellW} height={cellH} rx={2}
-                fill={fill} stroke="#3f3f46" strokeWidth={0.5} />
+                fill={fill} stroke={borderStroke} strokeWidth={0.5} />
               <text x={x + cellW / 2} y={y + cellH / 2 + 3}
-                textAnchor="middle" fill="#fff" fontSize={8}>
+                textAnchor="middle" fill={textFill} fontSize={8}>
                 {val !== undefined ? val.toFixed(2) : w.status === "control-wt" ? "WT" : ""}
               </text>
             </g>

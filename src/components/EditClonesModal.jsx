@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { ROWS_48, COLS_48, WELL_STATUS } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
 
 export default function EditClonesModal({ plate, onSave, onClose }) {
+  const { isDark } = useTheme();
+
   // Deep copy wells for editing
   const [wells, setWells] = useState(() =>
     JSON.parse(JSON.stringify(plate.wells))
@@ -64,12 +67,14 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
   const svgH = labelH + ROWS_48.length * (cellH + gap);
 
   const statusColors = {
-    empty: { bg: "#27272a", text: "#71717a" },
+    empty: { bg: isDark ? "#27272a" : "#f4f4f5", text: isDark ? "#71717a" : "#a1a1aa" },
     picked: { bg: "#059669", text: "#fff" },
     "control-wt": { bg: "#d97706", text: "#fff" },
     "control-blank": { bg: "#52525b", text: "#fff" },
-    dead: { bg: "#7f1d1d", text: "#fff" },
+    dead: { bg: isDark ? "#7f1d1d" : "#fecaca", text: isDark ? "#fff" : "#7f1d1d" },
   };
+
+  const borderStroke = isDark ? "#3f3f46" : "#d4d4d8";
 
   return (
     <div className="flex flex-col gap-3">
@@ -112,7 +117,7 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
                 <g key={well} onClick={() => handleWellClick(well)} style={{ cursor: "pointer" }}>
                   <rect x={x} y={y} width={cellW} height={cellH} rx={2}
                     fill={sc.bg}
-                    stroke={isSel ? "#22d3ee" : changed ? "#f59e0b" : "#3f3f46"}
+                    stroke={isSel ? "#22d3ee" : changed ? "#f59e0b" : borderStroke}
                     strokeWidth={isSel ? 2 : changed ? 1.5 : 0.5} />
                   <text x={x + cellW / 2} y={y + cellH / 2 + 3}
                     textAnchor="middle" fill={sc.text} fontSize={7}>
@@ -127,9 +132,9 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
 
       {/* Edit panel */}
       {selWell && (
-        <div className="bg-zinc-800 border border-zinc-600 rounded p-3">
+        <div className={`${isDark ? "bg-zinc-800 border-zinc-600" : "bg-zinc-100 border-zinc-300"} border rounded p-3`}>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[11px] text-zinc-200 font-bold">{selWell}</span>
+            <span className={`text-[11px] ${isDark ? "text-zinc-200" : "text-zinc-900"} font-bold`}>{selWell}</span>
             <span className="text-[10px] text-zinc-500">
               текущий: {wells[selWell]?.cloneId || "пусто"}
             </span>
@@ -141,7 +146,7 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
                 className={`px-2 py-0.5 text-[9px] rounded border font-mono cursor-pointer ${
                   editStatus === s
                     ? "border-emerald-600 bg-emerald-500/10 text-emerald-500"
-                    : "border-zinc-700 text-zinc-500"
+                    : isDark ? "border-zinc-700 text-zinc-500" : "border-zinc-300 text-zinc-500"
                 }`}
                 onClick={() => setEditStatus(s)}>{l}</button>
             ))}
@@ -150,15 +155,15 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
           {editStatus === "picked" && (
             <div className="flex gap-2 mb-2">
               <div className="flex-1">
-                <label className="text-[9px] text-zinc-600">Clone ID</label>
+                <label className={`text-[9px] ${isDark ? "text-zinc-600" : "text-zinc-500"}`}>Clone ID</label>
                 <input value={editCloneId} onChange={(e) => setEditCloneId(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-[10px] text-zinc-200 font-mono outline-none mt-0.5"
+                  className={`w-full ${isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-white border-zinc-300 text-zinc-900"} border rounded px-2 py-0.5 text-[10px] font-mono outline-none mt-0.5`}
                   placeholder="NTG1-S01-A1" />
               </div>
               <div className="w-20">
-                <label className="text-[9px] text-zinc-600">Source</label>
+                <label className={`text-[9px] ${isDark ? "text-zinc-600" : "text-zinc-500"}`}>Source</label>
                 <input value={editSource} onChange={(e) => setEditSource(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-[10px] text-zinc-200 font-mono outline-none mt-0.5"
+                  className={`w-full ${isDark ? "bg-zinc-900 border-zinc-700 text-zinc-200" : "bg-white border-zinc-300 text-zinc-900"} border rounded px-2 py-0.5 text-[10px] font-mono outline-none mt-0.5`}
                   placeholder="A1" />
               </div>
             </div>
@@ -173,7 +178,7 @@ export default function EditClonesModal({ plate, onSave, onClose }) {
 
       {/* Footer */}
       <div className="flex justify-between items-center">
-        <div className="text-[9px] text-zinc-600">
+        <div className={`text-[9px] ${isDark ? "text-zinc-600" : "text-zinc-500"}`}>
           Жёлтая рамка = изменённая лунка
         </div>
         <div className="flex gap-1.5">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { ROWS_96, COLS_96, ROWS_48, COLS_48, PLATE_TYPES } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
 
 const LABEL_W_MM = 57;
@@ -11,6 +12,7 @@ const CANVAS_W = Math.round(LABEL_W_MM * PX_PER_MM);
 const CANVAS_H = Math.round(LABEL_H_MM * PX_PER_MM);
 
 export default function LabelPrint({ plate, expId, onClose }) {
+  const { isDark } = useTheme();
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
 
@@ -301,13 +303,13 @@ export default function LabelPrint({ plate, expId, onClose }) {
 
   return (
     <div className="flex flex-col gap-3 items-center">
-      <div className="border border-zinc-700 rounded overflow-hidden bg-white"
+      <div className={`border ${isDark ? "border-zinc-700" : "border-zinc-300"} rounded overflow-hidden bg-white`}
         style={{ width: CANVAS_W * previewScale, height: CANVAS_H * previewScale }}>
         <canvas ref={canvasRef} width={CANVAS_W} height={CANVAS_H}
           style={{ width: "100%", height: "100%", display: "block" }} />
       </div>
 
-      <div className="text-[9px] text-zinc-600 text-center">
+      <div className={`text-[9px] ${isDark ? "text-zinc-600" : "text-zinc-500"} text-center`}>
         {LABEL_W_MM}×{LABEL_H_MM} мм · ч/б · 300 DPI
       </div>
 

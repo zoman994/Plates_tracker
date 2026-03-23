@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { ROWS_96, COLS_96, posToWell } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
 
 export default function PhotoAnalysis({ plateId, onApply, onClose }) {
+  const { isDark } = useTheme();
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const [step, setStep] = useState("upload");
@@ -11,6 +13,9 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
   const [results, setResults] = useState({});
   const [threshold, setThreshold] = useState(128);
   const [canvasSize, setCanvasSize] = useState({ w: 600, h: 400 });
+
+  const deadFill = isDark ? "#7f1d1d" : "#fecaca";
+  const deadStroke = isDark ? "#991b1b" : "#f87171";
 
   function handleFile(e) {
     const file = e.target.files[0];
@@ -160,7 +165,7 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
             Загрузить фото
             <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
           </label>
-          <div className="text-[10px] text-zinc-600 mt-2">Фото 96-well планшета сверху</div>
+          <div className={`text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-500"} mt-2`}>Фото 96-well планшета сверху</div>
         </div>
       )}
 
@@ -168,10 +173,10 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
         <>
           <canvas ref={canvasRef} width={canvasSize.w} height={canvasSize.h}
             onClick={handleCanvasClick}
-            className="border border-zinc-700 rounded cursor-crosshair mx-auto block" />
+            className={`border ${isDark ? "border-zinc-700" : "border-zinc-300"} rounded cursor-crosshair mx-auto block`} />
 
           {step === "calibrate" && (
-            <div className="text-[11px] text-zinc-400">
+            <div className={`text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
               Кликни по углам планшета ({corners.length}/4):
               {corners.length < 4 && (
                 <span className="text-emerald-500 ml-1 font-bold">{cornerLabels[corners.length]}</span>
@@ -189,13 +194,13 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
                 <input type="range" min="30" max="230" value={threshold}
                   onChange={(e) => reAnalyze(Number(e.target.value))}
                   className="flex-1 accent-emerald-500" />
-                <span className="text-[10px] text-zinc-400 w-8">{threshold}</span>
+                <span className={`text-[10px] ${isDark ? "text-zinc-400" : "text-zinc-600"} w-8`}>{threshold}</span>
               </div>
 
-              <div className="text-[11px] text-zinc-400">
+              <div className={`text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
                 Рост: <b className="text-emerald-500">{pickedCount}</b>
                 {" / "}Пусто: <b className="text-red-500">{deadCount}</b>
-                <span className="text-zinc-600 ml-2">· кликни для коррекции</span>
+                <span className={`${isDark ? "text-zinc-600" : "text-zinc-500"} ml-2`}>· кликни для коррекции</span>
               </div>
 
               {/* Mini correction grid */}
@@ -218,8 +223,8 @@ export default function PhotoAnalysis({ plateId, onApply, onClose }) {
                         <rect key={well}
                           x={20 + ci * 24} y={18 + ri * 24}
                           width={22} height={22} rx={2}
-                          fill={hasGrowth ? "#059669" : "#7f1d1d"}
-                          stroke={hasGrowth ? "#10b981" : "#991b1b"}
+                          fill={hasGrowth ? "#059669" : deadFill}
+                          stroke={hasGrowth ? "#10b981" : deadStroke}
                           strokeWidth={0.5}
                           style={{ cursor: "pointer" }}
                           onClick={() => toggleWell(well)} />

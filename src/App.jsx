@@ -6,7 +6,6 @@ import { WELL_STATUS, PLATE_TYPES } from "./lib/geometry";
 import PlateMap from "./components/PlateMap";
 import HeatmapPlate from "./components/HeatmapPlate";
 import TransferView from "./components/TransferView";
-import RankingTab from "./components/RankingTab";
 import PipelineView from "./components/PipelineView";
 import AnalysisTab from "./components/AnalysisTab";
 import StatsTab from "./components/StatsTab";
@@ -52,6 +51,8 @@ export default function CloneTracker() {
   const importAssay = useStore((s) => s.importAssay);
   const applyPhotoAnalysis = useStore((s) => s.applyPhotoAnalysis);
   const replaceWells = useStore((s) => s.replaceWells);
+  const deletePlate = useStore((s) => s.deletePlate);
+  const duplicatePlate = useStore((s) => s.duplicatePlate);
 
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
@@ -75,10 +76,26 @@ export default function CloneTracker() {
         e.preventDefault();
         redo();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        exportBackup(useStore);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo]);
+
+  // Warn on close with unsaved data
+  useEffect(() => {
+    const handler = (e) => {
+      if (useStore.getState().experiments.length > 0) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // Auto-save to disk (Electron)
   const dataVersion = useStore((s) => s.experiments.length + s.plates.length + s.transfers.length);
@@ -103,7 +120,7 @@ export default function CloneTracker() {
       <div className={`border-b px-4 py-2 flex justify-between items-center sticky top-0 z-40 ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-white"}`}>
         <div className="flex items-center gap-2">
           <span className="text-emerald-500 font-bold text-[15px] -tracking-wide">◉ CloneTracker</span>
-          <span className={`text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>v0.51</span>
+          <span className={`text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>v0.52</span>
           <div className="flex items-center gap-0.5 ml-2">
             <button onClick={undo} disabled={pastLen === 0}
               className={`bg-transparent border rounded cursor-pointer px-1.5 py-0.5 text-[10px] font-mono disabled:opacity-20 ${isDark ? "border-zinc-800 text-zinc-500 hover:bg-zinc-800" : "border-zinc-300 text-zinc-400 hover:bg-zinc-100"}`}
@@ -281,6 +298,9 @@ export default function CloneTracker() {
                       )}
                       <Btn small variant="secondary" onClick={() => exportPlate(curPlate, selExp)}>⬇ .xlsx</Btn>
                       <Btn small variant="secondary" onClick={() => setModal("label")}>🏷 Этикетка</Btn>
+                      <div className="flex-1" />
+                      <Btn small variant="secondary" onClick={() => duplicatePlate(curPlate.id)}>📋 Копия</Btn>
+                      <Btn small variant="danger" onClick={() => deletePlate(curPlate.id)}>🗑</Btn>
                     </div>
 
                     <div className="h-3.5 mb-1 text-[11px] text-zinc-500">
@@ -338,6 +358,7 @@ export default function CloneTracker() {
         {tab === "plates" && transferMode && tSrc && (
           <TransferView sourcePlate={tSrc} type={transferMode.type}
             replicates={transferMode.replicates || 3}
+            layout={transferMode.layout || "rows"}
             onConfirm={confirmTransfer}
             onCancel={() => useStore.getState().setTransferMode(null)} />
         )}

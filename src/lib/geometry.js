@@ -29,7 +29,11 @@ export function posToWell(r, c) {
   return String.fromCharCode(65 + r) + (c + 1);
 }
 
-export function clonesPerPlate(replicates = 3) {
+export function clonesPerPlate(replicates = 3, layout = "rows") {
+  if (layout === "cols") {
+    const groupsPerCol = Math.floor(8 / replicates);
+    return groupsPerCol * COLS_48.length - 1;
+  }
   const groupsPerRow = Math.floor(6 / replicates);
   return groupsPerRow * ROWS_48.length - 1;
 }

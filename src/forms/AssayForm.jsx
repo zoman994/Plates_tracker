@@ -1,15 +1,18 @@
 import { useState } from "react";
 import Btn from "../components/Btn";
-import { INPUT_CLASS } from "./styles";
+import { inputClass } from "./styles";
 import { parseAssayXlsx } from "../lib/xlsxParser";
 import { downloadAssayTemplate } from "../lib/templateDownload";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function AssayForm({ plates, onImport }) {
+  const { isDark } = useTheme();
   const [pid, setPid] = useState("");
   const [raw, setRaw] = useState("");
   const [file, setFile] = useState(null);
   const [mode, setMode] = useState("file");
   const [error, setError] = useState(null);
+  const ic = inputClass(isDark);
 
   async function handleSubmit() {
     setError(null);
@@ -32,7 +35,7 @@ export default function AssayForm({ plates, onImport }) {
     <div className="flex flex-col gap-2.5">
       <div>
         <label className="text-[10px] text-zinc-500">Планшет</label>
-        <select className={INPUT_CLASS} value={pid} onChange={(e) => setPid(e.target.value)}>
+        <select className={ic} value={pid} onChange={(e) => setPid(e.target.value)}>
           <option value="">Выбери...</option>
           {plates.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
@@ -46,13 +49,15 @@ export default function AssayForm({ plates, onImport }) {
             className={`px-3 py-1 text-[10px] rounded border font-mono cursor-pointer ${
               mode === k
                 ? "border-emerald-600 bg-emerald-500/10 text-emerald-500"
-                : "border-zinc-700 text-zinc-500"
+                : isDark
+                  ? "border-zinc-700 text-zinc-500"
+                  : "border-zinc-300 text-zinc-500"
             }`}
             onClick={() => setMode(k)}>{l}</button>
         ))}
         <div className="flex-1" />
         <button onClick={downloadAssayTemplate}
-          className="text-[9px] text-zinc-600 hover:text-emerald-500 cursor-pointer bg-transparent border-none font-mono underline">
+          className={`text-[9px] hover:text-emerald-500 cursor-pointer bg-transparent border-none font-mono underline ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
           ⬇ Скачать шаблон
         </button>
       </div>
@@ -61,12 +66,16 @@ export default function AssayForm({ plates, onImport }) {
         <div>
           <input type="file" accept=".xlsx,.xls,.csv"
             onChange={(e) => { setFile(e.target.files[0]); setError(null); }}
-            className="block text-[10px] text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-zinc-700 file:text-[10px] file:font-mono file:bg-zinc-800 file:text-zinc-300 file:cursor-pointer hover:file:bg-zinc-700" />
+            className={`block text-[10px] text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:text-[10px] file:font-mono file:cursor-pointer ${
+              isDark
+                ? "file:border-zinc-700 file:bg-zinc-800 file:text-zinc-300 hover:file:bg-zinc-700"
+                : "file:border-zinc-300 file:bg-white file:text-zinc-700 hover:file:bg-zinc-100"
+            }`} />
         </div>
       ) : (
         <div>
           <textarea
-            className={`${INPUT_CLASS} text-[10px] h-[120px] resize-none`}
+            className={`${ic} text-[10px] h-[120px] resize-none`}
             style={{ fontFamily: "'JetBrains Mono',monospace" }}
             value={raw}
             onChange={(e) => setRaw(e.target.value)}

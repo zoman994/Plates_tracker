@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { ROWS_96, COLS_96, ROWS_48, COLS_48, WELL_STATUS, posToWell } from "../lib/geometry";
+import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
 
 export default function PlateMap({ format, wells, onBatchAction, onWellHover, readOnly, hoveredClone, compact }) {
+  const { isDark } = useTheme();
   const rows = format === 96 ? ROWS_96 : ROWS_48;
   const cols = format === 96 ? COLS_96 : COLS_48;
   const is48 = format === 48;
@@ -16,6 +18,15 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
   const [dragEnd, setDragEnd] = useState(null);
+
+  // Theme-aware color overrides for well statuses
+  const wellColors = {
+    empty:          { color: isDark ? "#27272a" : "#f4f4f5", border: isDark ? "#3f3f46" : "#d4d4d8" },
+    picked:         { color: "#059669", border: "#10b981" },
+    "control-wt":   { color: "#d97706", border: "#f59e0b" },
+    "control-blank": { color: "#52525b", border: "#71717a" },
+    dead:           { color: isDark ? "#7f1d1d" : "#fecaca", border: "#991b1b" },
+  };
 
   const dragSel = (() => {
     if (!dragStart || !dragEnd) return new Set();
@@ -81,7 +92,7 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
         <div className="flex items-center gap-1.5 mb-1.5 min-h-[24px] flex-wrap">
           {selCount > 0 ? (
             <>
-              <span className="text-[10px] text-zinc-400">
+              <span className={`text-[10px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
                 Выбрано: <b className="text-cyan-400">{selCount}</b>
               </span>
               <Btn small onClick={() => batch("pick")}>✓ Клоны</Btn>
@@ -92,7 +103,7 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
               <Btn small variant="ghost" onClick={() => setSelected(new Set())}>✕</Btn>
             </>
           ) : (
-            <span className="text-[9px] text-zinc-700">Тяни мышью · клик по букве/цифре = ряд</span>
+            <span className={`text-[9px] ${isDark ? "text-zinc-700" : "text-zinc-400"}`}>Тяни мышью · клик по букве/цифре = ряд</span>
           )}
           <div className="flex-1" />
           <Btn small variant="ghost" onClick={selAll}>Всё</Btn>
@@ -117,7 +128,7 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
           cols.map((c, ci) => {
             const well = `${r}${c}`;
             const w = wells[well] || { status: "empty" };
-            const st = WELL_STATUS[w.status] || WELL_STATUS.empty;
+            const st = wellColors[w.status] || wellColors.empty;
             const isHov = hoveredClone && w.cloneId === hoveredClone;
             const isSel = activeSel.has(well);
             const x = labelW + ci * (cellW + gap);
@@ -145,7 +156,7 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
                 )}
                 {w.status === "picked" && !compact && format === 48 && w.replicateNum === 1 && (
                   <text x={x + cellW / 2} y={y + cellH / 2 + 3}
-                    textAnchor="middle" fill="#d4d4d8" fontSize={7}>{w.sourceWell || ""}</text>
+                    textAnchor="middle" fill={isDark ? "#d4d4d8" : "#3f3f46"} fontSize={7}>{w.sourceWell || ""}</text>
                 )}
                 {w.status === "picked" && !compact && format === 48 && w.replicateNum > 1 && (
                   <text x={x + cellW / 2} y={y + cellH / 2 + 3}
@@ -153,7 +164,7 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
                 )}
                 {w.value !== undefined && (
                   <text x={x + cellW / 2} y={y + cellH / 2 + 3}
-                    textAnchor="middle" fill="#fff" fontSize={7} fontWeight="bold">{w.value.toFixed(1)}</text>
+                    textAnchor="middle" fill={isDark ? "#fff" : "#18181b"} fontSize={7} fontWeight="bold">{w.value.toFixed(1)}</text>
                 )}
               </g>
             );

@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { PLATE_TYPES } from "../lib/geometry";
 import Btn from "../components/Btn";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function NewPlateForm({ expId, onSubmit, existing }) {
+  const { isDark } = useTheme();
   const [type, setType] = useState("source");
   const [format, setFormat] = useState(96);
 
@@ -26,15 +28,17 @@ export default function NewPlateForm({ expId, onSubmit, existing }) {
               className={`px-2.5 py-1 text-[10px] rounded border font-mono cursor-pointer ${
                 type === k
                   ? "border-emerald-600 bg-emerald-500/10 text-emerald-500"
-                  : "border-zinc-700 bg-transparent text-zinc-500"
+                  : isDark
+                    ? "border-zinc-700 bg-transparent text-zinc-500"
+                    : "border-zinc-300 bg-transparent text-zinc-500"
               }`}
               onClick={() => setType(k)}>{v.icon} {v.label}</button>
           ))}
         </div>
       </div>
-      <div className="text-[11px] text-zinc-400">
+      <div className={`text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
         Имя: <b>{name}</b> · {format === 48 ? "8×6" : "8×12"}
-        {format === 48 && <span className="text-zinc-600"> · 15+WT×3</span>}
+        {format === 48 && <span className={isDark ? "text-zinc-600" : "text-zinc-400"}> · 15+WT×3</span>}
       </div>
       <div className="flex justify-end">
         <Btn onClick={() => onSubmit(expId, name, format, type)}
