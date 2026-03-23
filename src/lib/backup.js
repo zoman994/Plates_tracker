@@ -143,7 +143,7 @@ export async function importBackup(store) {
 
 // ── Share single experiment (mobile-friendly) ──
 
-export function exportExperimentJson(store, expId) {
+export async function exportExperimentJson(store, expId) {
   const s = store.getState();
   const exp = s.experiments.find((e) => e.id === expId);
   if (!exp) return;
@@ -151,7 +151,7 @@ export function exportExperimentJson(store, expId) {
   const expPlates = s.plates.filter((p) => p.expId === expId);
   const expTransfers = s.transfers.filter((t) => t.expId === expId);
 
-  const data = JSON.stringify({
+  const jsonStr = JSON.stringify({
     _version: 3,
     _type: "experiment",
     _date: new Date().toISOString(),
@@ -160,22 +160,31 @@ export function exportExperimentJson(store, expId) {
     transfers: expTransfers,
   }, null, 2);
 
-  const blob = new Blob([data], { type: "application/json" });
-  const file = new File([blob], `${expId}.json`, { type: "application/json" });
+  const filename = `${expId}.json`;
+  const blob = new Blob([jsonStr], { type: "application/json" });
 
-  // Try Web Share API (mobile native share)
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    navigator.share({ files: [file], title: `CloneTracker: ${expId}` }).catch(() => {});
-    return;
+  // Try Web Share API (mobile)
+  try {
+    if (navigator.share) {
+      const file = new File([blob], filename, { type: "application/json" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `CloneTracker: ${expId}` });
+        return;
+      }
+    }
+  } catch (e) {
+    // Share cancelled or failed — fall through to download
   }
 
-  // Fallback: download
+  // Fallback: download via link
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${expId}.json`;
+  a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function importExperimentJson(store) {
