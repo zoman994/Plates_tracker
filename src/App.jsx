@@ -110,7 +110,7 @@ export default function CloneTracker() {
       {/* ═══ MAIN CONTENT ═══ */}
       <div className="flex-1 min-h-screen overflow-y-auto">
         {/* Tab bar */}
-        <div className={`sticky top-0 z-30 px-4 py-1.5 flex items-center gap-1 border-b ${
+        <div className={`sticky top-0 z-30 px-4 max-md:pl-12 py-1.5 flex items-center gap-1 border-b ${
           isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"
         }`}>
           {[["plates", "Планшеты"], ["analysis", "Анализ"], ["pipeline", "Пайплайн"], ["stats", "Статистика"]].map(([id, label]) => (

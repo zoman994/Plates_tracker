@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useStore from "../store/useStore";
 import { useTheme } from "../lib/ThemeContext";
 import { PLATE_TYPES } from "../lib/geometry";
@@ -22,7 +22,11 @@ export default function Sidebar() {
   const futureLen = useStore((s) => s._future.length);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const expPlates = plates.filter((p) => p.expId === selExp);
+
+  // Auto-close sidebar on mobile when navigating
+  const closeMobile = () => setMobileOpen(false);
 
   const sideBtn = (active, onClick, children) => (
     <button onClick={onClick}
@@ -48,9 +52,25 @@ export default function Sidebar() {
   );
 
   return (
-    <div className={`w-52 flex-shrink-0 flex flex-col border-r h-screen sticky top-0 ${
-      isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"
-    }`}>
+    <>
+    {/* Mobile burger button */}
+    <button onClick={() => setMobileOpen(true)}
+      className={`md:hidden fixed top-2 left-2 z-50 p-2 rounded ${isDark ? "bg-zinc-900 text-zinc-400" : "bg-white text-zinc-600"} border ${isDark ? "border-zinc-700" : "border-zinc-300"}`}>
+      ☰
+    </button>
+
+    {/* Overlay backdrop on mobile */}
+    {mobileOpen && (
+      <div className="md:hidden fixed inset-0 bg-black/50 z-40" onClick={closeMobile} />
+    )}
+
+    <div className={`flex-shrink-0 flex flex-col border-r h-screen sticky top-0 z-50
+      ${isDark ? "border-zinc-800 bg-zinc-950" : "border-zinc-200 bg-zinc-50"}
+      w-52
+      max-md:fixed max-md:top-0 max-md:left-0 max-md:h-full max-md:shadow-xl
+      max-md:transition-transform max-md:duration-200
+      ${mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full"}
+    `}>
       {/* Logo */}
       <div className="px-3 pt-3 pb-2">
         <div className="flex items-center gap-1.5">
@@ -83,7 +103,7 @@ export default function Sidebar() {
         </div>
         {experiments.map((exp) => (
           <div key={exp.id} className="px-1">
-            {sideBtn(selExp === exp.id, () => { setSelExp(exp.id); setTab("plates"); },
+            {sideBtn(selExp === exp.id, () => { setSelExp(exp.id); setTab("plates"); closeMobile(); },
               <div className="flex justify-between items-center">
                 <span className="font-bold truncate">{exp.id}</span>
                 <span className={`text-[8px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>{exp.type}</span>
@@ -109,7 +129,7 @@ export default function Sidebar() {
               if (!tp.length) return null;
               return tp.map((p) => (
                 <div key={p.id} className="px-1">
-                  {sideBtn(selPlate === p.id, () => { setSelPlate(p.id); setTab("plates"); },
+                  {sideBtn(selPlate === p.id, () => { setSelPlate(p.id); setTab("plates"); closeMobile(); },
                     <span>{PLATE_TYPES[type]?.icon} {p.name}</span>
                   )}
                 </div>
@@ -147,5 +167,6 @@ export default function Sidebar() {
         )}
       </div>
     </div>
+    </>
   );
 }

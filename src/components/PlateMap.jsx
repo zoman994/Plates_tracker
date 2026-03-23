@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ROWS_96, COLS_96, ROWS_48, COLS_48, WELL_STATUS, posToWell } from "../lib/geometry";
 import { useTheme } from "../lib/ThemeContext";
 import Btn from "./Btn";
@@ -59,6 +59,36 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
     setDragStart(null);
     setDragEnd(null);
   }
+
+  // Touch support — convert touch coordinates to row/col
+  const svgRef = useRef(null);
+  function touchToCell(touch) {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    const ci = Math.floor((x - labelW) / (cellW + gap));
+    const ri = Math.floor((y - labelH) / (cellH + gap));
+    if (ri < 0 || ri >= rows.length || ci < 0 || ci >= cols.length) return null;
+    return { r: ri, c: ci };
+  }
+  function onTS(e) {
+    if (readOnly) return;
+    e.preventDefault();
+    const cell = touchToCell(e.touches[0]);
+    if (!cell) return;
+    setDragging(true);
+    setDragStart(cell);
+    setDragEnd(cell);
+  }
+  function onTM(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const cell = touchToCell(e.touches[0]);
+    if (cell) setDragEnd(cell);
+  }
+  function onTE() { onMU(); }
   function selRow(ri) {
     if (readOnly) return;
     const s = new Set();
@@ -109,9 +139,10 @@ export default function PlateMap({ format, wells, onBatchAction, onWellHover, re
           <Btn small variant="ghost" onClick={selAll}>Всё</Btn>
         </div>
       )}
-      <svg width={totalW} height={totalH}
-        style={{ fontFamily: "'JetBrains Mono',monospace", userSelect: "none" }}
-        onMouseUp={onMU} onMouseLeave={onMU}>
+      <svg ref={svgRef} width={totalW} height={totalH}
+        style={{ fontFamily: "'JetBrains Mono',monospace", userSelect: "none", touchAction: "none" }}
+        onMouseUp={onMU} onMouseLeave={onMU}
+        onTouchStart={onTS} onTouchMove={onTM} onTouchEnd={onTE}>
         {cols.map((c, ci) => (
           <text key={ci} x={labelW + ci * (cellW + gap) + cellW / 2} y={11}
             textAnchor="middle" fill="#71717a" fontSize={8}
