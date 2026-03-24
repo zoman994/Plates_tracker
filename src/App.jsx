@@ -200,6 +200,7 @@ export default function CloneTracker() {
           {selExp && tab === "plates" && transferMode && tSrc && (
             <TransferView sourcePlate={tSrc} type={transferMode.type}
               replicates={transferMode.replicates || 3} layout={transferMode.layout || "rows"}
+              compact={transferMode.compact !== false}
               onConfirm={confirmTransfer}
               onCancel={() => useStore.getState().setTransferMode(null)} />
           )}

@@ -21,10 +21,38 @@ export default function LabelPrint({ plate, expId, onClose }) {
   const plateId = plate.id;
   const plateName = plate.name;
   const plateType = PLATE_TYPES[plate.type]?.label || plate.type;
-  const cloneCount = Object.values(plate.wells).filter((w) => w.status === "picked").length;
-  const wtCount = Object.values(plate.wells).filter((w) => w.status === "control-wt").length;
-  const deadCount = Object.values(plate.wells).filter((w) => w.status === "dead").length;
+  const pickedWells = Object.entries(plate.wells).filter(([, w]) => w.status === "picked");
+  const cloneCount = pickedWells.length;
   const date = plate.created ? plate.created.split("T")[0] : "";
+
+  // Calculate filled range (e.g. "A1–C9")
+  const filledRange = (() => {
+    if (pickedWells.length === 0) return "";
+    const positions = pickedWells.map(([well]) => ({
+      row: well.charCodeAt(0) - 65,
+      col: parseInt(well.slice(1)),
+    }));
+    const minRow = Math.min(...positions.map((p) => p.row));
+    const maxRow = Math.max(...positions.map((p) => p.row));
+    const minCol = Math.min(...positions.map((p) => p.col));
+    const maxCol = Math.max(...positions.map((p) => p.col));
+    return `${String.fromCharCode(65 + minRow)}${minCol}–${String.fromCharCode(65 + maxRow)}${maxCol}`;
+  })();
+
+  // QR data: plate ID + clone layout (compact JSON)
+  const qrPayload = JSON.stringify({
+    id: plateId,
+    exp: expId,
+    name: plateName,
+    fmt: plate.format,
+    date,
+    n: cloneCount,
+    range: filledRange,
+    clones: pickedWells.reduce((acc, [well, w]) => {
+      acc[well] = w.cloneId || "+";
+      return acc;
+    }, {}),
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -49,7 +77,7 @@ export default function LabelPrint({ plate, expId, onClose }) {
     // QR Code (top-left)
     const qrSize = mm(15);
     try {
-      const qrDataUrl = await QRCode.toDataURL(plateId, {
+      const qrDataUrl = await QRCode.toDataURL(qrPayload, {
         width: qrSize, margin: 0,
         color: { dark: "#000000", light: "#ffffff" },
       });
@@ -78,7 +106,7 @@ export default function LabelPrint({ plate, expId, onClose }) {
 
     // Line 3: Stats
     ctx.font = `${mm(2.5)}px 'Arial', sans-serif`;
-    ctx.fillText(`${cloneCount} кл. | ${plate.format}-well | ${date}`, textX, pad + mm(10));
+    ctx.fillText(`${cloneCount} кл. | ${filledRange || "—"} | ${plate.format}-well | ${date}`, textX, pad + mm(10));
 
     // Line 4: Full ID (small)
     ctx.font = `${mm(2)}px 'Arial', sans-serif`;

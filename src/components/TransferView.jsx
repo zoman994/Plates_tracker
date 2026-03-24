@@ -5,7 +5,7 @@ import { useTheme } from "../lib/ThemeContext";
 import PlateMap from "./PlateMap";
 import Btn from "./Btn";
 
-export default function TransferView({ sourcePlate, type, replicates = 3, layout = "rows", onConfirm, onCancel }) {
+export default function TransferView({ sourcePlate, type, replicates = 3, layout = "rows", compact = true, onConfirm, onCancel }) {
   const { isDark } = useTheme();
   const [hovClone, setHovClone] = useState(null);
   const [previewIdx, setPreviewIdx] = useState(0);
@@ -159,7 +159,7 @@ export default function TransferView({ sourcePlate, type, replicates = 3, layout
     new Set(Object.values(cur?.wells || {}).filter((w) => w.status === "picked").map((w) => w.cloneId));
 
   function handleConfirm() {
-    onConfirm(sourcePlate.id, type, replicates, activeClones, layout);
+    onConfirm(sourcePlate.id, type, replicates, activeClones, layout, compact);
   }
 
   // Source plate SVG dimensions

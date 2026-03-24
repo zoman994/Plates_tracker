@@ -10,6 +10,7 @@ export default function TransferSetup({ plates, onStart }) {
   const [type, setType] = useState("passage96");
   const [replicates, setReplicates] = useState(3);
   const [layout, setLayout] = useState("rows");
+  const [compact, setCompact] = useState(true);
 
   const src96 = plates.filter((p) => p.format === 96);
   const sp = plates.find((p) => p.id === srcId);
@@ -79,8 +80,22 @@ export default function TransferSetup({ plates, onStart }) {
           <b>{nCl}</b> → <b>{Math.ceil(nCl / cpPlate)}</b> × 48-DWP · {replicates}× · {layout === "rows" ? "по строкам" : "по столбцам"}
         </div>
       )}
+      {type === "passage96" && (
+        <div>
+          <label className="flex items-center gap-2 text-[10px] cursor-pointer">
+            <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)}
+              className="accent-emerald-500" />
+            <span className={isDark ? "text-zinc-300" : "text-zinc-600"}>
+              Уплотнить (закрыть гэпы)
+            </span>
+          </label>
+          <div className={`text-[9px] mt-0.5 ml-5 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            Клоны переупакуются без пропусков (A1, A2, A3...)
+          </div>
+        </div>
+      )}
       <div className="flex justify-end">
-        <Btn onClick={() => onStart(srcId, type, replicates, layout)} disabled={!srcId}>Предпросмотр →</Btn>
+        <Btn onClick={() => onStart(srcId, type, replicates, layout, compact)} disabled={!srcId}>Предпросмотр →</Btn>
       </div>
     </div>
   );

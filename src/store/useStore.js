@@ -233,10 +233,10 @@ const useStore = create(
         }));
       },
 
-      startTransfer: (srcId, type, replicates = 3, layout = "rows") =>
-        set({ transferMode: { sourceId: srcId, type, replicates, layout }, modal: null }),
+      startTransfer: (srcId, type, replicates = 3, layout = "rows", compact = true) =>
+        set({ transferMode: { sourceId: srcId, type, replicates, layout, compact }, modal: null }),
 
-      confirmTransfer: (srcId, type, replicates = 3, customClones = null, layout = "rows") => {
+      confirmTransfer: (srcId, type, replicates = 3, customClones = null, layout = "rows", compact = true) => {
         get()._pushUndo();
         const s = get();
         const src = s.plates.find((p) => p.id === srcId);
@@ -247,13 +247,48 @@ const useStore = create(
           const name = `P${n.toString().padStart(2, "0")}`;
           const id = `${src.expId}-${name}`;
           const nw = {};
-          const activeIds = customClones ? new Set(customClones.map((c) => c.cloneId)) : null;
-          for (const [k, v] of Object.entries(src.wells)) {
-            if (activeIds && v.status === "picked" && !activeIds.has(v.cloneId)) {
-              // Excluded picked clone → empty, but keep WT/blank/dead as-is
-              nw[k] = { status: "empty", cloneId: null };
-            } else {
-              nw[k] = { ...v };
+
+          if (compact) {
+            // Compact mode: close gaps, repack clones left-to-right, top-to-bottom
+            const activeClones = customClones || [];
+            // If no customClones, collect all picked from source
+            const clonesToPack = activeClones.length > 0 ? activeClones : [];
+            if (clonesToPack.length === 0) {
+              for (const r of ROWS_96)
+                for (const c of COLS_96) {
+                  const w = `${r}${c}`;
+                  const d = src.wells[w];
+                  if (d && d.status === "picked") clonesToPack.push({ cloneId: d.cloneId, sourceWell: w });
+                }
+            }
+            // Initialize all wells as empty
+            for (const r of ROWS_96)
+              for (const c of COLS_96)
+                nw[`${r}${c}`] = { status: "empty", cloneId: null };
+            // Pack clones sequentially
+            let idx = 0;
+            for (const r of ROWS_96)
+              for (const c of COLS_96) {
+                if (idx >= clonesToPack.length) break;
+                const well = `${r}${c}`;
+                nw[well] = { status: "picked", cloneId: clonesToPack[idx].cloneId };
+                idx++;
+              }
+            // Copy WT/blank/dead from source to same positions (if not overwritten)
+            for (const [k, v] of Object.entries(src.wells)) {
+              if (v.status === "control-wt" || v.status === "control-blank") {
+                if (nw[k].status === "empty") nw[k] = { ...v };
+              }
+            }
+          } else {
+            // Non-compact: keep positions, just exclude
+            const activeIds = customClones ? new Set(customClones.map((c) => c.cloneId)) : null;
+            for (const [k, v] of Object.entries(src.wells)) {
+              if (activeIds && v.status === "picked" && !activeIds.has(v.cloneId)) {
+                nw[k] = { status: "empty", cloneId: null };
+              } else {
+                nw[k] = { ...v };
+              }
             }
           }
           set({
