@@ -8,7 +8,9 @@ export default function StatsTab({ expId }) {
   const { isDark } = useTheme();
   const plates = useStore((s) => s.plates);
   const experiments = useStore((s) => s.experiments);
+  const createFlasksFromRanking = useStore((s) => s.createFlasksFromRanking);
   const [searchQuery, setSearchQuery] = useState("");
+  const [topN, setTopN] = useState(5);
 
   const expPlates = useMemo(() => plates.filter((p) => p.expId === expId), [plates, expId]);
   const sourcePlates = useMemo(() => expPlates.filter((p) => p.type === "source"), [expPlates]);
@@ -213,12 +215,23 @@ export default function StatsTab({ expId }) {
           <span className="text-[10px] text-zinc-500 uppercase tracking-wider">
             {multiExp ? "Мульти-эксперимент ранкинг (top 50)" : "Ранкинг этого эксперимента"}
           </span>
-          {experiments.length > 1 && (
-            <Btn small variant={multiExp ? "primary" : "secondary"}
-              onClick={() => setMultiExp(!multiExp)}>
-              {multiExp ? "Только этот" : "Все эксперименты"}
-            </Btn>
-          )}
+          <div className="flex gap-1.5">
+            {!multiExp && ranked.length > 0 && (
+              <Btn small variant="secondary"
+                onClick={() => {
+                  const top = ranked.slice(0, topN);
+                  createFlasksFromRanking(expId, top);
+                }}>
+                🏺 Top {topN} → колбы
+              </Btn>
+            )}
+            {experiments.length > 1 && (
+              <Btn small variant={multiExp ? "primary" : "secondary"}
+                onClick={() => setMultiExp(!multiExp)}>
+                {multiExp ? "Только этот" : "Все эксперименты"}
+              </Btn>
+            )}
+          </div>
         </div>
 
         {(() => {

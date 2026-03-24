@@ -156,5 +156,22 @@ export function exportExperiment(plates, expId) {
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
   }
 
+  // Flasks sheet
+  const flaskPlates = expPlates.filter((p) => p.type === "flask");
+  if (flaskPlates.length > 0) {
+    const flaskData = [["Колба", "Clone ID", "Source", "OD", "Активность ГА", "Биомасса", "pH", "Глюкоза", "Время (ч)", "Заметки"]];
+    for (const f of flaskPlates) {
+      const d = f.flaskData || {};
+      flaskData.push([
+        f.name, d.cloneId || "", d.sourceWell || "",
+        d.od ?? "", d.activity ?? "", d.biomass ?? "",
+        d.ph ?? "", d.glucose ?? "", d.time ?? "", d.notes || "",
+      ]);
+    }
+    const wsFlask = XLSX.utils.aoa_to_sheet(flaskData);
+    wsFlask["!cols"] = [{ wch: 8 }, { wch: 18 }, { wch: 8 }, { wch: 8 }, { wch: 14 }, { wch: 10 }, { wch: 6 }, { wch: 10 }, { wch: 8 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, wsFlask, "Flasks");
+  }
+
   download(wb, `${expId}-all.xlsx`);
 }

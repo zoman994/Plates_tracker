@@ -163,6 +163,53 @@ const useStore = create(
         }));
       },
 
+      createFlask: (expId, cloneId, sourceWell) => {
+        get()._pushUndo();
+        const s = get();
+        const existing = s.plates.filter((p) => p.expId === expId && p.type === "flask").length;
+        const name = `F${(existing + 1).toString().padStart(2, "0")}`;
+        const id = `${expId}-${name}`;
+        set((prev) => ({
+          plates: [...prev.plates, {
+            id, expId, name, format: 1, type: "flask", wells: {},
+            flaskData: { cloneId: cloneId || "", sourceWell: sourceWell || "", notes: "" },
+            created: new Date().toISOString(),
+          }],
+          selPlate: id,
+        }));
+      },
+
+      updateFlaskData: (plateId, key, value) => {
+        get()._pushUndo();
+        set((s) => ({
+          plates: s.plates.map((p) => {
+            if (p.id !== plateId) return p;
+            return { ...p, flaskData: { ...p.flaskData, [key]: value } };
+          }),
+        }));
+      },
+
+      createFlasksFromRanking: (expId, clones) => {
+        get()._pushUndo();
+        const s = get();
+        const existing = s.plates.filter((p) => p.expId === expId && p.type === "flask").length;
+        const newFlasks = clones.map((cl, i) => {
+          const name = `F${(existing + i + 1).toString().padStart(2, "0")}`;
+          return {
+            id: `${expId}-${name}`, expId, name, format: 1, type: "flask", wells: {},
+            flaskData: {
+              cloneId: cl.cloneId, sourceWell: cl.sourceWell,
+              screeningMean: cl.mean, screeningRatio: cl.ratio,
+              notes: "",
+            },
+            created: new Date().toISOString(),
+          };
+        });
+        set((prev) => ({
+          plates: [...prev.plates, ...newFlasks],
+        }));
+      },
+
       batchWellAction: (plateId, wls, action) => {
         get()._pushUndo();
         set((s) => ({

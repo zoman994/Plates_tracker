@@ -24,6 +24,7 @@ import AssayForm from "./forms/AssayForm";
 import PickingImportForm from "./forms/PickingImportForm";
 import CloneCounterImportForm from "./forms/CloneCounterImportForm";
 import TecanConfigForm from "./forms/TecanConfigForm";
+import FlaskTab from "./components/FlaskTab";
 import { exportBackup } from "./lib/backup";
 
 export default function CloneTracker() {
@@ -99,7 +100,7 @@ export default function CloneTracker() {
         <div className={`sticky top-0 z-30 px-4 max-md:pl-12 py-1.5 flex items-center gap-1 border-b ${
           isDark ? "bg-zinc-950 border-zinc-800" : "bg-white border-zinc-200"
         }`}>
-          {[["plates", "Планшеты"], ["analysis", "Анализ"], ["pipeline", "Пайплайн"], ["stats", "Статистика"]].map(([id, label]) => (
+          {[["plates", "Планшеты"], ["analysis", "Анализ"], ["flasks", "Колбы"], ["pipeline", "Пайплайн"], ["stats", "Статистика"]].map(([id, label]) => (
             <button key={id}
               className={`px-3 py-1 text-[11px] rounded border-none cursor-pointer font-mono ${
                 tab === id ? "bg-emerald-500/10 text-emerald-500" : "bg-transparent text-zinc-500"
@@ -204,6 +205,7 @@ export default function CloneTracker() {
           )}
 
           {selExp && tab === "analysis" && <AnalysisTab expId={selExp} />}
+          {selExp && tab === "flasks" && <FlaskTab expId={selExp} />}
           {selExp && tab === "pipeline" && <PipelineView expId={selExp} />}
           {selExp && tab === "stats" && <StatsTab expId={selExp} />}
         </div>
