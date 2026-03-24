@@ -342,6 +342,31 @@ const useStore = create(
         plates: state.plates,
         transfers: state.transfers,
       }),
+      // Custom storage: file-first for Electron (portable on USB), localStorage fallback
+      storage: {
+        getItem: async (name) => {
+          // Try file first (Electron portable — data lives next to exe)
+          if (window.electronAPI) {
+            try {
+              const result = await window.electronAPI.loadData();
+              if (result.ok && result.data) return result.data;
+            } catch {}
+          }
+          // Fallback to localStorage
+          return localStorage.getItem(name);
+        },
+        setItem: async (name, value) => {
+          // Always write to localStorage
+          localStorage.setItem(name, value);
+          // Also write to file in Electron
+          if (window.electronAPI) {
+            try { window.electronAPI.saveData(value); } catch {}
+          }
+        },
+        removeItem: (name) => {
+          localStorage.removeItem(name);
+        },
+      },
     }
   )
 );

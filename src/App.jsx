@@ -24,7 +24,7 @@ import AssayForm from "./forms/AssayForm";
 import PickingImportForm from "./forms/PickingImportForm";
 import CloneCounterImportForm from "./forms/CloneCounterImportForm";
 import TecanConfigForm from "./forms/TecanConfigForm";
-import { exportBackup, autoSaveToDisk, loadFromDiskIfNewer } from "./lib/backup";
+import { exportBackup } from "./lib/backup";
 
 export default function CloneTracker() {
   const { isDark } = useTheme();
@@ -69,21 +69,7 @@ export default function CloneTracker() {
   }, [undo, redo]);
 
   // Load from disk backup if localStorage is empty (Electron)
-  useEffect(() => { loadFromDiskIfNewer(useStore); }, []);
-
-  // Auto-save on close
-  useEffect(() => {
-    const handler = () => autoSaveToDisk(useStore);
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, []);
-
-  const saveCounter = useStore((s) => s._saveCounter);
-  useEffect(() => {
-    if (saveCounter === 0) return;
-    const timer = setTimeout(() => autoSaveToDisk(useStore), 1500);
-    return () => clearTimeout(timer);
-  }, [saveCounter]);
+  // Zustand persist handles file storage automatically via custom storage adapter.
 
   // Derived state
   const curExp = experiments.find((e) => e.id === selExp);
